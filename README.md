@@ -107,7 +107,7 @@ The results were decisive. The agent achieved near-perfect performance, regularl
 
 ![V3 vs V5 Comparison](graphs/05_v3_vs_v5_comparison.png)
 
-Version 3 represented a breakthrough moment. Version 5 represented mastery. The peak score increased from 550 to 3,000, a 445% gain. The average score jumped from 240 to 2,138, a 790% improvement. Where version 3 performed inconsistently, version 5 achieved near-perfect play in two out of three games.
+Version 3 represented a breakthrough moment. Version 5 represented mastery. The peak score increased from 550 to 3,000, a 445% improvement. The average score jumped from 240 to 2,138, a 791% improvement. Where version 3 performed inconsistently, version 5 achieved near-perfect play in two out of three games.
 
 The improvements came from two sources: better network architecture providing greater learning capacity, and extended training allowing the agent to refine its strategy over millions of games.
 
