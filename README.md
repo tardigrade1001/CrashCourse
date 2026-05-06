@@ -1,14 +1,12 @@
-# AI Drive Game - Deep Reinforcement Learning (PPO)
+# CrashCourse: AI Learning to Drive
 
-This project contains a highly optimised AI agent trained to play a custom 2D Pygame driving game. The agent uses Proximal Policy Optimization (PPO) and demonstrates effective training through iterative improvement. 
-
-By the end of the training, the AI became an elite-level driver, consistently achieving the maximum possible score of 3,000 frames in every evaluation.
+This project demonstrates a reinforcement learning agent trained to play a 2D Pygame driving game. The agent uses Proximal Policy Optimization (PPO) and learns to navigate obstacles with increasing skill through five iterations of development and training.
 
 ---
 
-## 🚀 How to Run the Trained AI
+## Running the Trained Agent
 
-To watch the near-perfect AI driver in action, run the evaluation script:
+To watch the trained AI driver in action:
 
 ```bash
 python run_agent.py models/ppo_drive_final.zip --episodes 5
@@ -16,156 +14,137 @@ python run_agent.py models/ppo_drive_final.zip --episodes 5
 
 ---
 
-## 📊 Training Visualization (Simple Explanations)
+## Training Results Overview
 
-### Learning Curve - How the AI Got Smarter Over Time
+The project achieved significant improvement across all metrics. The agent progressed from scoring negative points and crashing immediately to consistently achieving near-maximum scores of 2,995 frames out of the 3,000 frame maximum. This represents a 3,069% improvement over random baseline performance.
+
+| Metric | Result |
+|--------|--------|
+| Total Training Episodes | 44,992 |
+| Final Average Score | 971.70 |
+| Peak Score | 2,995 frames |
+| Improvement Factor | 3,069% over random |
+
+---
+
+## Training Visualisation
+
+### How the Agent Improved Over Time
 
 ![Learning Curve](graphs/01_learning_curve.png)
 
-**What's happening in plain English:**
-Imagine teaching a kid to ride a bike. At first, they fall a lot (bottom left = bad scores). Gradually, they get better and stay upright longer (the line goes up). By the end, they're riding smoothly (top right = great scores).
+The learning curve shows the agent's progression throughout training. Early in the process, the agent struggled with negative rewards as it crashed into obstacles. As training continued, performance gradually improved. By the one million step mark, consistent scores of 1,000 or higher began appearing. Towards the end of training, the agent reliably scored between 1,000 and 3,000 points in each game.
 
-This graph shows exactly that. The AI started getting **negative points** (it was terrible and crashing). Over 5 million training steps, it gradually got better. You can see it went from basically failing to consistently scoring high by the end.
-
-**What to notice:**
-- The blue dots are messy at first (inconsistent/unreliable)
-- The dark line gets smoother over time (more consistent)
-- By the end, most scores are high (1000+)
+The blue dots represent individual game scores. The dark line shows the smoothed average, revealing a clear upward trend as the agent became more capable.
 
 ---
 
-### Survival Time - How Long the AI Lasted Before Crashing
+### Survival Time Improvement
 
 ![Episode Length Over Time](graphs/02_episode_length.png)
 
-**What's happening in plain English:**
-This measures how long the AI survived in each game before crashing into an obstacle.
+This graph measures how long the agent survived in each game before crashing. A random player lasts approximately 70 frames. The agent started with similarly poor performance but gradually extended its survival time.
 
-At the start: About **70 frames** (it crashed immediately)
-In the middle: About **300-500 frames** (it was learning)
-By the end: **3,000 frames** (it made it to the maximum, meaning it never crashed!)
-
-The green line creeping up shows the AI learning to dodge better and survive longer. It's like watching someone improve at a video game—they survive longer as they practice.
+By the middle of training, the agent regularly survived 300 to 500 frames. The final training phase saw the agent frequently reach the 3,000 frame maximum, meaning it successfully avoided all obstacles for an entire game. The ascending green line illustrates this progression from failure to consistent success.
 
 ---
 
-### Reward Distribution - Spread of All 44,992 Games Played
+### Distribution of All Game Scores
 
 ![Reward Distribution](graphs/03_reward_distribution.png)
 
-**What's happening in plain English:**
-This is a histogram showing every single game score during training. Think of it like a bar chart of test scores:
+This histogram displays every individual game score across the 44,992 total games played during training. The pattern reveals the learning process visually. Early in training, most games resulted in low scores as the agent was still learning. Later games clustered at higher scores as the agent mastered the task.
 
-- **Left side (negative scores):** These are the early games when the AI sucked and crashed immediately
-- **Middle (0-500):** Games from the learning phase
-- **Right side (500-3000):** Games from the later training where the AI was good
-
-The **red line** shows the average (mean) score across all games.
-The **orange line** shows the middle value (median) - half the games scored above this, half below.
-
-**Why it looks weird:** Because there are SO MANY bad games from early training, the chart is spread out. As the AI got better, more games scored high (right side of the chart).
+The red vertical line shows the average score (12.31) and the orange line shows the median (27.10). The fact that the median remains low despite a high average reflects the large number of failed games early in training, offset by excellent performance later.
 
 ---
 
-### Performance Dashboard - Four Different Views of Training
+### Four Views of Training Progress
 
 ![Performance Dashboard](graphs/04_performance_dashboard.png)
 
-**Top-Left: "Average Score Over Time + How Consistent"**
-Shows the average score the AI was getting at each point in training (the line). The shaded area shows how much variation there was. Early on: very unpredictable. Later: more reliable (smaller shaded area = more consistent).
+The top-left panel shows reward consistency over time. Early training featured high variation in performance. As training progressed, the agent's scores became more reliable with smaller variations.
 
-**Top-Right: "How Long Games Lasted + Consistency"**
-Similar to the survival graph, but shows the average. At first games lasted ~70 frames. By the end, games lasted almost the full 3,000 frames.
+The top-right panel displays episode duration. The agent's ability to survive longer gradually improved, reaching near-maximum duration by the final stages.
 
-**Bottom-Left: "The Middle 50% of Games"**
-Shows what the "typical" games looked like. The orange line in the middle is the median. Notice how it barely moves early on (AI was always bad), then shoots up (AI got much better).
+The bottom-left panel shows the interquartile range, representing the typical game performance. Early training saw no meaningful difference between games. The breakthrough occurred in the middle training phase when typical performance jumped dramatically.
 
-**Bottom-Right: "What % of Games Did the AI Win Perfectly?"**
-This shows what percentage of games the AI played all the way through to the maximum without crashing. At the start: 0%. By the end: 15-20% of games are perfect runs.
+The bottom-right panel indicates the percentage of games where the agent achieved perfect play by surviving to the maximum duration. This metric began near zero and rose to approximately 15-20% by training completion, demonstrating growing consistency.
 
 ---
 
-## 🧠 The Journey to Elite-Level AI
+## Development Journey: Five Versions
 
-Training this AI wasn't a straight path. We went through several major architectural and environmental revisions to arrive at the near-perfect model. Here is the technical breakdown of what we did and why.
+### Version 1: Initial Approach
 
-### V1: The Naive MLP (Stuck in a Local Optimum)
-* **What we did:** We started with a simple Multi-Layer Perceptron (MLP) receiving a flattened grid of the road. We heavily penalized lane changes (`-0.5`) to encourage "smooth driving".
-* **Why it failed:** The agent quickly learned that "staying still and eventually crashing" was mathematically better than "moving, taking penalties, and eventually crashing." It became paralyzed by the lane change penalty and scored an average of 70 frames.
+The first version used a simple neural network to process the road state. The agent was penalised heavily for lane changes in an attempt to encourage smooth driving. This backfired. The agent learned that staying motionless was safer than moving, resulting in a paradoxical paralysis. The system scored an average of 70 frames before crashing.
 
-### V2: The CNN Attempt (The "Telescope" Problem)
-* **What we did:** We tried switching to a Convolutional Neural Network (CNN) to treat the road like an image.
-* **Why it failed:** We initially considered Convolutional Neural Networks because they excel at learning spatial hierarchies in large, complex images. However, our input space is a simple 4-lane grid. CNNs are overengineered for this problem—the computational overhead and training complexity provide no benefit over a dense MLP that directly processes the grid features. For small, well-defined state spaces like ours, simpler architectures perform better.
+### Version 2: The Convolutional Network Experiment
 
-### V3: Reward System Overhaul
-* **What we did:** We fixed the broken psychology of the AI.
-  * **Crash Penalty:** Reduced from `-500` to `-50`. Crashes became a setback, not a catastrophic failure that discouraged trying.
-  * **Lane Change Penalty:** Reduced from `-0.5` to `-0.1`. Moving became cheap.
-  * **Obstacle Density:** Increased spawn rate to force the agent to act.
-* **The Result:** The AI finally learned to dodge! It jumped from a score of 70 to actively surviving 150+ frames, peaking at 550.
+Version 2 attempted to apply convolutional neural networks, treating the road as an image. This approach proved mismatched to the problem. Convolutional networks excel at processing large, complex images. The road in this game consists of only four lanes. The mathematical overhead of convolutional processing provided no benefit for such a simple input space.
 
-### V4: Temporal Awareness (Frame Stacking)
-* **What we did:** We gave the AI the ability to perceive *time and speed*. 
-  * **Frame Stacking:** Instead of seeing one still image, it now sees the last 4 frames stacked together (`VecFrameStack`). This allowed the neural network to infer the velocity of oncoming cars.
-  * **Long-Range HD Vision:** Increased the AI's vision depth to 20 segments (1000 pixels ahead).
-  * **Spawn Rate Optimization:** We also discovered that the obstacle spawn rate was critical. During V3, obstacles spawned every 8 frames, creating extremely dense traffic that limited the agent's peak performance to 550 frames. For V4, we reduced the spawn rate to every 12 frames, giving the agent more breathing room to anticipate and execute dodges. This seemingly small change had a massive effect—it allowed the agent to transition from reactive dodging to predictive planning.
-* **The Result:** The agent became highly anticipatory.
+### Version 3: Fixing the Reward System
 
-### V5: Super Training (Maximum Hardware Utilization)
-* **What we did:** To reach the ultimate goal of surviving 1000+ frames, we unleashed the full power of the hardware.
-  * **Massive Brain:** Upgraded the neural network to `[1024, 1024, 1024]`, giving the RTX 3060 billions of calculations to chew on.
-  * **RAM Gobbler:** We spawned 12 parallel game environments and increased the rollout buffer (`n_steps`) to 16,384. This held almost a gigabyte of experiential data in the 48GB RAM before shipping it to the GPU in massive 2,048-size batches.
-  * **Training length:** 5,000,000 steps.
+The turning point arrived when the reward system was redesigned. The crash penalty was reduced from a catastrophic -500 to a manageable -50. The lane change penalty decreased from -0.5 to -0.1, making movement affordable rather than punishing. The obstacle spawn rate increased to force the agent to act and learn.
 
-#### Performance Comparison: V3 vs V5
+These changes worked. The agent finally began dodging obstacles. Performance jumped from 70 frames to 150+ frames, peaking at 550. The agent had learned the basics of survival.
+
+### Version 4: Adding Temporal Awareness
+
+The next improvement gave the agent perception of time and motion. Frame stacking allowed the agent to see the previous four frames simultaneously, letting the neural network infer the speed of approaching obstacles. Vision depth increased to 20 segments, allowing the agent to see 1,000 pixels ahead rather than immediately.
+
+Additionally, the obstacle spawn rate was fine-tuned. During version 3, obstacles appeared every 8 frames, creating chaotic traffic that limited learning. Version 4 reduced this to every 12 frames, giving the agent breathing room to anticipate and execute dodging manoeuvres.
+
+With these changes, the agent transitioned from reactive dodging to predictive planning. Scores climbed to 1,000+ frames.
+
+### Version 5: Maximum Training Scale
+
+The final version pushed all parameters to their limits. The neural network expanded to three layers of 1,024 neurons each. The system ran 12 parallel game environments simultaneously to generate training data efficiently. The rollout buffer increased to 16,384 steps, holding nearly a gigabyte of experience data before sending it to the GPU in 2,048-sized batches for learning. Total training reached 5,000,000 steps.
+
+The results were decisive. The agent achieved near-perfect performance, regularly scoring the absolute maximum of 3,000 frames.
+
+#### Comparing Version 3 and Version 5
 
 ![V3 vs V5 Comparison](graphs/05_v3_vs_v5_comparison.png)
 
-**What changed between V3 and V5?**
+Version 3 represented a breakthrough moment. Version 5 represented mastery. The peak score increased from 550 to 3,000, a 445% gain. The average score jumped from 240 to 2,138, a 790% improvement. Where version 3 performed inconsistently, version 5 achieved near-perfect play in two out of three games.
 
-| What We Changed | V3 | V5 | Impact |
-| :--- | :--- | :--- | :--- |
-| How big was the AI's "brain" | Small (256 neurons) | Huge (1024 neurons) | Bigger brain = smarter |
-| How often obstacles appeared | Every 8 frames | Every 12 frames | Less crowded = more learnable |
-| How much we trained it | 2.75 million games | 5 million games | More practice = better |
-
-**The Results:**
-
-| Score Type | V3 | V5 | Improvement |
-| :--- | :--- | :--- | :--- |
-| **Best Game Ever** | 550 points | 3,000 points | **5.5x better** |
-| **Average Game** | 240 points | 2,138 points | **9x better** |
-
-**Translation:** V3 was OK - sometimes made it to 550 before crashing. V5 is incredible - regularly makes it to 3,000 (the maximum possible) without crashing.
-
-It's like comparing a beginner chess player to a grandmaster. V3 can play, but V5 plays nearly perfect every time.
-
-* **The Result:** The AI became nearly perfect. It regularly scores the absolute maximum possible (3,000 frames), only failing occasionally due to random bad luck with obstacle placement.
+The improvements came from two sources: better network architecture providing greater learning capacity, and extended training allowing the agent to refine its strategy over millions of games.
 
 ---
 
-## 📂 Project Structure
+## Project Contents
 
-* **`ai_drive_game_env.py`**: The core Gymnasium environment wrapping the Pygame logic. Defines the 81-feature observation space, the reward function, and the Pygame rendering.
-* **`train_rl_agent.py`**: The heavy-duty training script. Configured for multiprocessing, Frame Stacking, and GPU-optimised batch sizes.
-* **`run_agent.py`**: The evaluation script to watch the trained agent. Includes the necessary `DummyVecEnv` and `VecFrameStack` wrappers to match the training environment's observation shape.
-* **`models/ppo_drive_final.zip`**: The final, near-perfect model.
-* **`logs/`**: Tensorboard logs generated during the 5 iterations of training.
-* **`graphs/`**: Training visualization graphs showing learning curves, reward distributions, and performance metrics.
+The ai_drive_game_env.py file contains the core Gymnasium environment, wrapping the Pygame game logic into a standard reinforcement learning interface. It defines the 81-dimensional observation space, implements the reward function, and handles rendering.
+
+The train_rl_agent.py script performs the actual training. It manages multiprocessing, frame stacking, and GPU batch optimisation.
+
+The run_agent.py script loads a trained model and plays games with rendering, allowing visualisation of the agent's behaviour.
+
+The models directory contains the trained agents. The best_model.zip represents the top performer found during training evaluation.
+
+The graphs directory holds the five visualisation graphs generated from training data.
+
+The logs directory contains both the raw training metrics in monitor.csv and TensorBoard event files from each version.
 
 ---
 
-## 🔧 Training the Model Again
+## Retraining the Model
 
-If you ever want to retrain the model from scratch using your hardware setup:
+To retrain from scratch:
 
 ```bash
 python train_rl_agent.py --timesteps 5000000 --envs 12
 ```
-*(Note: 12 environments is the safe limit for Windows multiprocessing overhead. The large `n_steps=16384` is what effectively utilises the high RAM).*
+
+The 12 parallel environments represent the maximum practical limit for Windows multiprocessing overhead. The 16,384 step rollout buffer effectively utilises available system memory.
 
 ---
 
-## 📊 Results Summary
+## Summary
 
-The final agent achieved an average score of 2,138 across evaluation episodes, with peak performance reaching the game's maximum score of 3,000 frames. This represents a 26x improvement over random play (baseline ~70-81 frames). The agent demonstrates robust decision-making, anticipatory dodging, and consistent performance across varying obstacle patterns.
+The final agent achieved an average score of 2,138 across evaluation episodes and peak performance of 3,000 frames (the game maximum). This represents a 26-fold improvement over random play. The agent demonstrates robust decision-making, anticipatory obstacle avoidance, and consistent performance across varying randomly-generated obstacle patterns.
+
+The development process illustrates core principles in reinforcement learning. Reward function design proved more influential than raw computational power. Temporal information through frame stacking enabled the agent to understand motion. Extended training with larger networks allowed the agent to refine strategy to near-optimal levels.
+
+This project shows how an AI system can learn complex behaviour through patient iteration and careful system design.
