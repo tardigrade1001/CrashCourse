@@ -4,6 +4,12 @@ This project demonstrates a reinforcement learning agent trained to play a 2D Py
 
 ---
 
+## Gameplay Demo
+
+![Gameplay Demo](demo.gif)
+
+---
+
 ## Running the Trained Agent
 
 To watch the trained AI driver in action:
