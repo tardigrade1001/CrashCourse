@@ -53,28 +53,24 @@ print("[OK] Saved: 01_learning_curve.png")
 plt.close()
 
 # ============================================================================
-# Graph 2: Episode Length Over Time (Agent Survival)
+# Graph 2: Training Consistency - Reward Variance Over Time
 # ============================================================================
 fig, ax = plt.subplots(figsize=(14, 7))
 
-df['length_smoothed'] = df['l'].rolling(window=50, center=True).mean()
+df['reward_std'] = df['r'].rolling(window=50, center=True).std()
 
-ax.scatter(df['t'], df['l'], alpha=0.3, s=10, label='Raw Episode Length', color='forestgreen')
-ax.plot(df['t'], df['length_smoothed'], linewidth=2.5, label='Moving Avg (window=50)', color='darkgreen')
+ax.fill_between(df['t'], 0, df['reward_std'], alpha=0.4, color='coral')
+ax.plot(df['t'], df['reward_std'], linewidth=2.5, label='Reward Variance (Std Dev)', color='darkred')
 
 ax.set_xlabel('Total Timesteps', fontsize=12, fontweight='bold')
-ax.set_ylabel('Episode Length (frames)', fontsize=12, fontweight='bold')
-ax.set_title('Survival Time: How Long the Agent Lasted Over Training', fontsize=14, fontweight='bold', pad=20)
-ax.legend(fontsize=11, loc='lower right')
+ax.set_ylabel('Standard Deviation of Rewards', fontsize=12, fontweight='bold')
+ax.set_title('Training Consistency: How Predictable Agent Performance Became Over Time', fontsize=14, fontweight='bold', pad=20)
+ax.legend(fontsize=11, loc='upper right')
 ax.grid(True, alpha=0.3)
 
-# Add max frames line
-max_frames = 3000
-ax.axhline(y=max_frames, color='red', linestyle='--', alpha=0.5, linewidth=2, label='Max Game Duration')
-
 plt.tight_layout()
-plt.savefig('graphs/02_episode_length.png', dpi=300, bbox_inches='tight')
-print("[OK] Saved: 02_episode_length.png")
+plt.savefig('graphs/02_training_consistency.png', dpi=300, bbox_inches='tight')
+print("[OK] Saved: 02_training_consistency.png")
 plt.close()
 
 # ============================================================================

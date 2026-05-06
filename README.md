@@ -45,13 +45,13 @@ The blue dots represent individual game scores. The dark line shows the smoothed
 
 ---
 
-### Survival Time Improvement
+### Training Consistency
 
-![Episode Length Over Time](graphs/02_episode_length.png)
+![Training Consistency](graphs/02_training_consistency.png)
 
-This graph measures how long the agent survived in each game before crashing. A random player lasts approximately 70 frames. The agent started with similarly poor performance but gradually extended its survival time.
+While the learning curve shows improving average performance, this graph reveals how the agent's reliability improved over time. Early in training, performance varied wildly—some games scored well whilst others ended in immediate crashes. This chaos reflects an agent still learning the basics.
 
-By the middle of training, the agent regularly survived 300 to 500 frames. The final training phase saw the agent frequently reach the 3,000 frame maximum, meaning it successfully avoided all obstacles for an entire game. The ascending green line illustrates this progression from failure to consistent success.
+As training progressed, the standard deviation of rewards decreased dramatically. By the final stages, the agent's performance became highly predictable and consistent. Where early training saw rewards ranging from -100 to 500 in successive games, late training saw almost every game score between 1,500 and 3,000. This transition from chaotic learning to reliable mastery is a hallmark of successful reinforcement learning.
 
 ---
 
