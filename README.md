@@ -1,6 +1,6 @@
 # AI Drive Game - Deep Reinforcement Learning (PPO)
 
-This project contains a highly optimized AI agent trained to play a custom 2D Pygame driving game. The agent uses Proximal Policy Optimization (PPO) and was heavily optimized to utilize high-end hardware (RTX 3060, 48GB RAM). 
+This project contains a highly optimised AI agent trained to play a custom 2D Pygame driving game. The agent uses Proximal Policy Optimization (PPO) and demonstrates effective training through iterative improvement. 
 
 By the end of the training, the AI became an elite-level driver, consistently achieving the maximum possible score of 3,000 frames in every evaluation.
 
@@ -147,7 +147,7 @@ It's like comparing a beginner chess player to a grandmaster. V3 can play, but V
 ## 📂 Project Structure
 
 * **`ai_drive_game_env.py`**: The core Gymnasium environment wrapping the Pygame logic. Defines the 81-feature observation space, the reward function, and the Pygame rendering.
-* **`train_rl_agent.py`**: The heavy-duty training script. Configured for multiprocessing, Frame Stacking, and GPU-optimized batch sizes.
+* **`train_rl_agent.py`**: The heavy-duty training script. Configured for multiprocessing, Frame Stacking, and GPU-optimised batch sizes.
 * **`run_agent.py`**: The evaluation script to watch the trained agent. Includes the necessary `DummyVecEnv` and `VecFrameStack` wrappers to match the training environment's observation shape.
 * **`models/ppo_drive_final.zip`**: The final, near-perfect model.
 * **`logs/`**: Tensorboard logs generated during the 5 iterations of training.
@@ -162,7 +162,7 @@ If you ever want to retrain the model from scratch using your hardware setup:
 ```bash
 python train_rl_agent.py --timesteps 5000000 --envs 12
 ```
-*(Note: 12 environments is the safe limit for Windows multiprocessing overhead. The large `n_steps=16384` is what effectively utilizes the high RAM).*
+*(Note: 12 environments is the safe limit for Windows multiprocessing overhead. The large `n_steps=16384` is what effectively utilises the high RAM).*
 
 ---
 

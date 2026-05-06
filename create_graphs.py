@@ -5,7 +5,7 @@ import seaborn as sns
 import os
 from pathlib import Path
 
-# Set professional style
+# Set professional style (British English)
 sns.set_style("whitegrid")
 plt.rcParams['figure.figsize'] = (14, 8)
 plt.rcParams['font.size'] = 11
