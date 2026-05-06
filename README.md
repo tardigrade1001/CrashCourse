@@ -2,6 +2,8 @@
 
 This project demonstrates a reinforcement learning agent trained to play a 2D Pygame driving game. The agent uses Proximal Policy Optimization (PPO) and learns to navigate obstacles with increasing skill through five iterations of development and training.
 
+Built with assistance from Claude and Gemini AI tools, which helped with code development, testing, graph generation, and documentation.
+
 ---
 
 ## Running the Trained Agent
