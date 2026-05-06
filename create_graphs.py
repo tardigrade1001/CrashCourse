@@ -170,7 +170,7 @@ plt.close()
 # ============================================================================
 # Graph 5: V3 vs V5 Performance Comparison
 # ============================================================================
-fig, ax = plt.subplots(figsize=(12, 8))
+fig, ax = plt.subplots(figsize=(14, 8))
 
 versions = ['V3', 'V5']
 peak_scores = [550, 3000]
@@ -182,31 +182,42 @@ width = 0.35
 bars1 = ax.bar(x - width/2, peak_scores, width, label='Peak Score', color='steelblue', edgecolor='black', linewidth=1.5)
 bars2 = ax.bar(x + width/2, avg_scores, width, label='Average Score', color='coral', edgecolor='black', linewidth=1.5)
 
-ax.set_ylabel('Score (frames)', fontsize=12, fontweight='bold')
-ax.set_title('V3 vs V5: Dramatic Performance Improvement', fontsize=14, fontweight='bold', pad=20)
+ax.set_ylabel('Score (frames)', fontsize=13, fontweight='bold')
+ax.set_title('V3 vs V5: Performance Improvement Comparison', fontsize=15, fontweight='bold', pad=20)
 ax.set_xticks(x)
-ax.set_xticklabels(versions, fontsize=12, fontweight='bold')
-ax.legend(fontsize=11)
+ax.set_xticklabels(versions, fontsize=13, fontweight='bold')
+ax.legend(fontsize=12, loc='upper left')
 ax.grid(True, alpha=0.3, axis='y')
+ax.set_ylim(0, 3500)
 
-# Add value labels on bars
+# Add score value labels on bars
 for bar in bars1:
     height = bar.get_height()
-    ax.text(bar.get_x() + bar.get_width()/2., height,
-            f'{int(height)}', ha='center', va='bottom', fontweight='bold', fontsize=11)
+    ax.text(bar.get_x() + bar.get_width()/2., height + 80,
+            f'{int(height)}', ha='center', va='bottom', fontweight='bold', fontsize=12)
 
 for bar in bars2:
     height = bar.get_height()
-    ax.text(bar.get_x() + bar.get_width()/2., height,
-            f'{int(height)}', ha='center', va='bottom', fontweight='bold', fontsize=11)
+    ax.text(bar.get_x() + bar.get_width()/2., height + 80,
+            f'{int(height)}', ha='center', va='bottom', fontweight='bold', fontsize=12)
 
-# Add improvement percentages
+# Add improvement percentages with arrow annotations
 improvement_peak = ((3000 - 550) / 550) * 100
 improvement_avg = ((2138 - 240) / 240) * 100
-ax.text(0.5, 2500, f'{improvement_peak:.0f}% improvement', ha='center', fontsize=12,
-        bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.3), fontweight='bold')
-ax.text(0.5, 1800, f'{improvement_avg:.0f}% improvement', ha='center', fontsize=12,
-        bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.3), fontweight='bold')
+
+# Peak score improvement label
+ax.annotate('', xy=(1.165, 2900), xytext=(-0.165, 550),
+            arrowprops=dict(arrowstyle='->', lw=2, color='darkblue', alpha=0.5))
+ax.text(0.5, 1800, f'+{improvement_peak:.0f}%', ha='center', fontsize=14,
+        bbox=dict(boxstyle='round,pad=0.8', facecolor='yellow', alpha=0.7, edgecolor='black', linewidth=2),
+        fontweight='bold')
+
+# Average score improvement label
+ax.annotate('', xy=(1.235, 2050), xytext=(-0.235, 240),
+            arrowprops=dict(arrowstyle='->', lw=2, color='darkorange', alpha=0.5))
+ax.text(0.5, 700, f'+{improvement_avg:.0f}%', ha='center', fontsize=14,
+        bbox=dict(boxstyle='round,pad=0.8', facecolor='lightgreen', alpha=0.7, edgecolor='black', linewidth=2),
+        fontweight='bold')
 
 plt.tight_layout()
 plt.savefig('graphs/05_v3_vs_v5_comparison.png', dpi=300, bbox_inches='tight')
