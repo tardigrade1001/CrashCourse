@@ -2,8 +2,6 @@
 
 This project demonstrates a reinforcement learning agent trained to play a 2D Pygame driving game. The agent uses Proximal Policy Optimization (PPO) and learns to navigate obstacles with increasing skill through five iterations of development and training.
 
-Built with assistance from Claude and Gemini AI tools, which helped with code development, testing, graph generation, and documentation.
-
 ---
 
 ## Running the Trained Agent
@@ -150,3 +148,7 @@ The final agent achieved an average score of 2,138 across evaluation episodes an
 The development process illustrates core principles in reinforcement learning. Reward function design proved more influential than raw computational power. Temporal information through frame stacking enabled the agent to understand motion. Extended training with larger networks allowed the agent to refine strategy to near-optimal levels.
 
 This project shows how an AI system can learn complex behaviour through patient iteration and careful system design.
+
+---
+
+*Developed with assistance from Claude and Gemini AI tools.*
