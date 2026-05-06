@@ -27,7 +27,8 @@ The project achieved significant improvement across all metrics. The agent progr
 | Metric | Result |
 |--------|--------|
 | Total Training Episodes | 44,992 |
-| Final Average Score | 971.70 |
+| Training-Wide Average Score | 12.31 |
+| Evaluation Average Score | 2,138 |
 | Peak Score | 2,995 frames |
 | Improvement Factor | 3,069% over random |
 
@@ -61,7 +62,7 @@ As training progressed, the standard deviation of rewards decreased dramatically
 
 This histogram displays every individual game score across the 44,992 total games played during training. The pattern reveals the learning process visually. Early in training, most games resulted in low scores as the agent was still learning. Later games clustered at higher scores as the agent mastered the task.
 
-The red vertical line shows the average score (12.31) and the orange line shows the median (27.10). The fact that the median remains low despite a high average reflects the large number of failed games early in training, offset by excellent performance later.
+The red vertical line shows the global training-wide average score (12.31), which is heavily weighted by early failures and crashes. The orange line shows the median (27.10). This low average across all training episodes reflects the reality of reinforcement learning: the agent spent hundreds of episodes crashing before it learned to survive. By the end of training, the agent's evaluation average reached 2,138—a stark contrast to this training-wide average.
 
 ---
 
