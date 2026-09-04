@@ -1,0 +1,82 @@
+{
+  "config": "v6_decorrelated",
+  "episodes": 6,
+  "greedy_danger": 1,
+  "rows": [
+    {
+      "policy": "greedy",
+      "n_episodes": 6,
+      "frames_mean": 592.5,
+      "frames_ci_lo": 263.6666666666667,
+      "frames_ci_hi": 953.3333333333334,
+      "frames_sd": 484.0209706200755,
+      "frames_median": 468.5,
+      "frames_min": 115,
+      "frames_max": 1374,
+      "return_mean": 531.5833333333334,
+      "return_sd": 518.8770698987032,
+      "success_rate": 0.0,
+      "config": "v6_decorrelated"
+    },
+    {
+      "policy": "gemini@60",
+      "n_episodes": 6,
+      "frames_mean": 163.0,
+      "frames_ci_lo": 79.66666666666667,
+      "frames_ci_hi": 273.1666666666667,
+      "frames_sd": 138.173803595327,
+      "frames_median": 107.5,
+      "frames_min": 62,
+      "frames_max": 419,
+      "return_mean": 71.59999999999971,
+      "return_sd": 140.18750300936213,
+      "success_rate": 0.0,
+      "config": "v6_decorrelated"
+    },
+    {
+      "policy": "stay",
+      "n_episodes": 6,
+      "frames_mean": 80.5,
+      "frames_ci_lo": 66.33333333333333,
+      "frames_ci_hi": 98.33333333333333,
+      "frames_sd": 22.518880966868668,
+      "frames_median": 74.5,
+      "frames_min": 62,
+      "frames_max": 122,
+      "return_mean": -16.016666666666666,
+      "return_sd": 19.847762258417603,
+      "success_rate": 0.0,
+      "config": "v6_decorrelated"
+    },
+    {
+      "policy": "random",
+      "n_episodes": 6,
+      "frames_mean": 71.5,
+      "frames_ci_lo": 65.5,
+      "frames_ci_hi": 77.33333333333333,
+      "frames_sd": 8.191458966508957,
+      "frames_median": 72.5,
+      "frames_min": 62,
+      "frames_max": 82,
+      "return_mean": -23.96666666666667,
+      "return_sd": 8.627552762322928,
+      "success_rate": 0.0,
+      "config": "v6_decorrelated"
+    },
+    {
+      "policy": "hover",
+      "n_episodes": 6,
+      "frames_mean": 62.5,
+      "frames_ci_lo": 62.166666666666664,
+      "frames_ci_hi": 62.833333333333336,
+      "frames_sd": 0.5477225575051661,
+      "frames_median": 62.5,
+      "frames_min": 62,
+      "frames_max": 63,
+      "return_mean": -39.4666666666667,
+      "return_sd": 1.2832251036613496,
+      "success_rate": 0.0,
+      "config": "v6_decorrelated"
+    }
+  ]
+}

@@ -158,3 +158,30 @@ class HoverExploit:
     def act(self, stacked_obs: np.ndarray) -> int:
         self._k += 1
         return self.lane_a if self._k % 2 else self.lane_b
+
+
+class HeldPolicy:
+    """Wraps a policy so it decides every ``decide_every`` steps and holds between.
+
+    Any controller can be placed on the same decision-rate axis as a hosted
+    model this way, which turns latency into a variable the comparison controls
+    for.
+    """
+
+    def __init__(self, inner, decide_every: int, name: str | None = None):
+        self.inner = inner
+        self.decide_every = max(1, int(decide_every))
+        self.name = name or f"{inner.name}@{self.decide_every}"
+        self._step = 0
+        self._action = 0
+
+    def reset(self) -> None:
+        self.inner.reset()
+        self._step = 0
+        self._action = 0
+
+    def act(self, stacked_obs: np.ndarray) -> int:
+        if self._step % self.decide_every == 0:
+            self._action = int(self.inner.act(stacked_obs))
+        self._step += 1
+        return self._action

@@ -53,6 +53,7 @@ class DriveEnv(gym.Env):
         self.obstacles: list[tuple[int, float, tuple[int, int]]] = []
         self.obstacle_colors: dict[tuple[int, int], tuple[int, int, int]] = {}
         self.frame_count = 0
+        self._next_spawn = self.cfg.spawn_interval
         self.episode_return = 0.0
 
     # ------------------------------------------------------------------ core
@@ -83,6 +84,7 @@ class DriveEnv(gym.Env):
         self.obstacles = []
         self.obstacle_colors = {}
         self.frame_count = 0
+        self._next_spawn = self.cfg.spawn_interval
         self.episode_return = 0.0
         if self.render_mode == "human":
             self._ensure_display()
@@ -124,7 +126,10 @@ class DriveEnv(gym.Env):
         ]
 
         self.frame_count += 1
-        if self.frame_count % cfg.spawn_interval == 0:
+        if self.frame_count >= self._next_spawn:
+            self._next_spawn = self.frame_count + cfg.spawn_interval + (
+                int(self.np_random.integers(0, cfg.spawn_jitter + 1))
+                if cfg.spawn_jitter else 0)
             lane = int(self.np_random.integers(0, cfg.lanes))
             oid = (lane, self.frame_count)
             self.obstacles.append((lane, -100.0, oid))

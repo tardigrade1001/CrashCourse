@@ -175,3 +175,44 @@ def test_config_rejects_typos():
     from crashcourse.config import RunConfig
     with pytest.raises(ValueError):
         RunConfig.from_dict({"env": {"lane_transtion": "smooth"}})
+
+
+def test_spawn_jitter_breaks_the_periodic_clock():
+    """A fixed spawn period lets a commensurate decision rate alias with it.
+
+    With jitter the spawn period varies, so no decision rate samples the world
+    in a fixed phase. This guards the environment against the aliasing that the
+    decision-rate sweep uncovered.
+    """
+    from crashcourse.policies import GreedySafestLane, HeldPolicy
+
+    periodic = EnvConfig()
+    jittered = EnvConfig(spawn_interval=6, spawn_jitter=8)
+    seeds = episode_seeds(12)
+
+    def at(cfg, every):
+        policy = HeldPolicy(GreedySafestLane(cfg, danger=2), every)
+        return evaluate(policy, cfg, seeds, n_stack=4).frames.mean()
+
+    aliased = at(periodic, 5)
+    neighbour = max(at(periodic, 4), at(periodic, 6))
+    assert aliased > 4 * neighbour, "the periodic spawn clock stopped aliasing"
+
+    spread = [at(jittered, e) for e in (4, 5, 6)]
+    assert max(spread) < 4 * min(spread), "jitter left an aliasing spike behind"
+
+
+def test_spawn_jitter_defaults_to_the_published_behaviour():
+    cfg = EnvConfig()
+    assert cfg.spawn_jitter == 0
+    env = DriveEnv(cfg)
+    env.reset(seed=0)
+    spawns = []
+    for _ in range(200):
+        before = len(env.obstacles)
+        env.step(0)
+        if len(env.obstacles) > before:
+            spawns.append(env.frame_count)
+    env.close()
+    gaps = {b - a for a, b in zip(spawns, spawns[1:])}
+    assert gaps == {cfg.spawn_interval}, f"spawn period drifted: {gaps}"

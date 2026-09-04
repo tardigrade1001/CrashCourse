@@ -1,0 +1,25 @@
+name: v6_decorrelated
+description: >
+  Obstacles spawn on a jittered period uniform on 6 to 14 frames, keeping the
+  mean of 10 that v5 uses. The fixed period in v5 gives every controller a clock
+  to read, and the decision-rate sweep showed a policy sampling at a
+  commensurate rate sees a stroboscopically stable world. Jitter removes the
+  clock and holds obstacle density constant.
+env:
+  lane_transition: smooth
+  lerp_alpha: 0.15
+  obs_depth: 20
+  position_feature: lane
+  spawn_interval: 6
+  spawn_jitter: 8
+  max_frames: 3000
+  lane_readout: centered
+train:
+  total_timesteps: 1000000
+  n_envs: 8
+  n_stack: 4
+  net_arch: [1024, 1024, 1024]
+  n_steps: 2048
+  batch_size: 256
+  learning_rate: 0.00005
+  ent_coef: 0.01

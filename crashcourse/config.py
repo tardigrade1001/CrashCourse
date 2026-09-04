@@ -34,6 +34,10 @@ class EnvConfig:
     lerp_alpha: float = 0.15
     obstacle_speed: int = 10
     spawn_interval: int = 10
+    # Frames of uniform jitter added to the spawn period. At 0 the period is
+    # exactly spawn_interval, which lets a controller deciding at a commensurate
+    # rate sample a stroboscopically stable world. See docs on decision rate.
+    spawn_jitter: int = 0
     max_frames: int = 3000
 
     # Collision

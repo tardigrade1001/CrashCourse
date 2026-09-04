@@ -2,6 +2,7 @@
 
     python evaluate.py --config configs/v5_smooth.yaml --episodes 200
     python evaluate.py --config configs/v5_smooth.yaml --model results/v5_smooth/seed0/final_model.zip
+    python evaluate.py --config configs/v6_decorrelated.yaml --gemini --episodes 16
 
 Every policy sees the same list of held-out episode seeds, so the comparison is
 paired. Results are written as CSV and JSON under results/eval/ and printed as a
@@ -29,7 +30,8 @@ from crashcourse.policies import (  # noqa: E402
 )
 
 
-def collect(cfg: RunConfig, seeds, model_paths: list[Path], greedy_danger: int):
+def collect(cfg: RunConfig, seeds, model_paths: list[Path], greedy_danger: int,
+            gemini_every: int | None = None):
     env_cfg, n_stack = cfg.env, cfg.train.n_stack
     reports = [
         evaluate(RandomPolicy(env_cfg, seed=0), env_cfg, seeds, n_stack),
@@ -51,6 +53,12 @@ def collect(cfg: RunConfig, seeds, model_paths: list[Path], greedy_danger: int):
             label = f"ppo:{path.parent.name}" if path.parent.name.startswith("seed") else "ppo"
             reports.append(evaluate_model(model, env_cfg, seeds, n_stack, name=label))
         venv.close()
+    if gemini_every:
+        from crashcourse.gemini_policy import GeminiPolicy
+
+        with GeminiPolicy(env_cfg, decide_every=gemini_every) as policy:
+            reports.append(evaluate(policy, env_cfg, seeds, n_stack))
+            print("hosted policy:", policy.stats.summary())
     return reports
 
 
@@ -82,6 +90,10 @@ def main() -> None:
     p.add_argument("--episodes", type=int, default=200)
     p.add_argument("--model", action="append", default=[], help="repeatable")
     p.add_argument("--greedy-danger", type=int, default=None, help="default: swept")
+    p.add_argument("--gemini", action="store_true",
+                   help="include the hosted model, needs GEMINI_API_KEY")
+    p.add_argument("--gemini-every", type=int, default=25,
+                   help="environment steps between hosted decisions")
     p.add_argument("--out", default="results/eval")
     args = p.parse_args()
 
@@ -90,7 +102,8 @@ def main() -> None:
     danger = args.greedy_danger if args.greedy_danger is not None else sweep_greedy(cfg, seeds[:50])
     models = [Path(m) for m in args.model]
 
-    reports = collect(cfg, seeds, models, danger)
+    reports = collect(cfg, seeds, models, danger,
+                      args.gemini_every if args.gemini else None)
     rows = [r.summary() for r in reports]
     for row in rows:
         row["config"] = cfg.name

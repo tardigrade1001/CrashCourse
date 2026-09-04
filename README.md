@@ -54,7 +54,7 @@ Across one full episode the agent spends 1,010, 1,037, and 942 frames in lanes 0
 
 ## Development history
 
-Five iterations, each kept because the reason for moving on shaped what came next.
+Six iterations, each kept because the reason for moving on shaped what came next.
 
 | Iteration | Approach | Outcome |
 |---|---|---|
@@ -63,6 +63,7 @@ Five iterations, each kept because the reason for moving on shaped what came nex
 | V3 | 81 feature lane occupancy grid, 4 frame stack, 1024×3 network | Published iteration, immediate lane changes |
 | V4 | V3 carried forward with revised plotting and evaluation | Fed the figure pipeline used here |
 | V5 | Interpolated lane changes, equal car sizes, pixel-overlap collision | 3,000 frames on 100 of 100 episodes |
+| V6 | The hosted model rebuilt, and decision rate swept across every controller | 2.04 Hz measured, and a spawn clock identified |
 
 V3 and V5 use identical PPO hyperparameters. The difference between them is the environment mechanics, which makes the pair a single-variable comparison.
 
@@ -77,6 +78,36 @@ A second pass reduced obstacle speed by half and widened the spawn interval, buy
 The measurement carries the design decision that followed. Closing a loop at this rate calls for a policy that runs inside the loop, and a PPO forward pass on a local GPU returns an action in well under a millisecond. That is where V2 begins, and it is the reason the project moved to reinforcement learning at all.
 
 `legacy/car/` holds the connector, the game, and `ai_drive_log.csv`, which is the source of the timings above.
+
+### V6: revisiting the hosted model
+
+V6 returns to the V1 idea with the same key and model family. Holding one Live
+session open for an episode and sending the lane occupancy as text puts the
+decision rate at 2.04 Hz over 465 logged decisions, against the 1.07 Hz V1
+measured. `crashcourse/gemini_policy.py` holds it.
+
+Any controller can be run at a fixed decision rate, holding its action in
+between, which is what a hosted model does inside a real loop. On that axis the
+hosted model holds 175, 173, and 154 frames at 10, 25, and 60 steps between
+decisions. The hand-written controller reaches 544 frames when it decides every
+step, and the comparison is mostly a statement about decision rate.
+
+![Survival against decision rate](docs/figures/06_decision_rate.png)
+
+**Figure 4.** Episode length against environment steps between decisions, on
+held-out seeds. The hand-written controller is retuned at every rate. The shaded
+band is a bootstrap interval on the hosted mean. The environment renders at 60
+frames per second, so 60 steps between decisions is 1 Hz.
+
+Sweeping that axis turned up a property of the environment worth recording. V5
+spawns an obstacle every 10 frames exactly, and a controller deciding on a
+matching beat samples the world in a fixed phase. `EnvConfig.spawn_jitter`
+varies the period, and `configs/v6_decorrelated.yaml` spreads it over 6 to 14
+frames with the mean held at 10. Moving to the jittered version, uniform random
+action keeps 96% of its result, the hand-written controller keeps 64%, and the
+V5 agent keeps 27%. The agent had a periodic schedule available throughout
+training. `experiments/spawn_clock.py` reproduces the comparison and
+`tests/test_env.py` covers it.
 
 The reward shaping in an early iteration carried a large lane-change penalty. The agent responded by holding one lane and accepting collisions, which is the correct solution to the reward as written. Reducing that penalty to 0.1 restored active dodging. This is the clearest lesson in the project: the agent optimises the reward it is given, so the reward specification carries the intent.
 
@@ -99,6 +130,7 @@ The lower rate reaches more than double the episode length at 400,000 transition
 | Action | Discrete(4), the target lane |
 | Episode cap | 3,000 frames |
 | Obstacles | One spawn every 10 frames in a uniformly chosen lane, descending 10 px per frame |
+| Spawn jitter | 0 by default. `configs/v6_decorrelated.yaml` varies the period over 6 to 14 frames |
 | Lane transition | Position interpolates toward the target lane at 0.15 per frame |
 | Reward | +1.0 survival, +0.1 in a centre lane, −0.1 on a lane change, −100.0 on contact |
 
@@ -133,6 +165,15 @@ python train.py --config configs/v5_full.yaml --seed 0
 # regenerate the figures
 python create_graphs.py --monitor logs/monitor.csv
 
+# drive with the hosted model, needs GEMINI_API_KEY
+python evaluate.py --config configs/v6_decorrelated.yaml --gemini --episodes 16
+
+# measure reliance on the periodic spawn clock
+python experiments/spawn_clock.py
+
+# figures for decision rate, latency, and the spawn clock
+python experiments/cadence_figure.py
+
 # run the study across every configuration
 python experiments/run_ablation.py --seeds 3
 ```
@@ -147,12 +188,14 @@ pytest tests/ -q
 
 ```
 crashcourse/        environment, config, policies, evaluation, figure style
+                    and gemini_policy.py, the hosted model as a Policy
 configs/            one YAML per experiment, ablations in configs/ablations/
 train.py            train one configuration with one seed
 evaluate.py         compare policies over shared held-out seeds
 watch.py            render a policy, or record it to a GIF
 create_graphs.py    figures from a training monitor log
-experiments/        the full study and the archive recording script
+experiments/        the study, the spawn-clock run, the cadence figures,
+                    and the archive recording script
 tests/              environment contract and regression tests
 models/             the archived V5 policy
 logs/               the V5 training monitor and evaluation logs

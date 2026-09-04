@@ -38,6 +38,7 @@ POLICY = {
     "random": GREY,    # uniform action baseline
     "stay": GREY,      # hold one lane, baseline
     "hover": PURPLE,   # degenerate policy that ignores the observation
+    "gemini": BLUE,    # hosted model deciding over the network
 }
 
 # -- semantic configuration identity -----------------------------------------
