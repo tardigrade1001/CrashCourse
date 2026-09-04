@@ -92,7 +92,7 @@ class TrainConfig:
     gamma: float = 0.99
     gae_lambda: float = 0.95
     device: str = "auto"
-    eval_freq_steps: int = 100_000   # in environment transitions, not vector steps
+    eval_freq_steps: int = 100_000   # counted in environment transitions
     n_eval_episodes: int = 10
 
 
