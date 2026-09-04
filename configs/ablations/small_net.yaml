@@ -1,0 +1,4 @@
+name: small_net
+description: Two layers of 64 units. Tests whether the task needs the capacity of the canonical network.
+env: {lane_transition: smooth, obs_depth: 20, position_feature: lane}
+train: {total_timesteps: 1000000, n_envs: 8, n_stack: 4, net_arch: [64, 64], n_steps: 2048, batch_size: 256, learning_rate: 0.00005, ent_coef: 0.01}

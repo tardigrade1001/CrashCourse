@@ -1,161 +1,168 @@
-# CrashCourse: AI Learning to Drive
+# CrashCourse
 
-This project demonstrates a reinforcement learning agent trained to play a 2D Pygame driving game. The agent uses Proximal Policy Optimization (PPO) and learns to navigate obstacles with increasing skill through five iterations of development and training.
+PPO obstacle avoidance in a custom Gymnasium environment, built and iterated from scratch.
 
----
+![The V5 agent driving](docs/demo.gif)
 
-## Gameplay Demo
-
-![Gameplay Demo](demo.gif)
+The agent above is the V5 policy running on the V5 environment. It holds the 3,000 frame cap and makes 243 lane changes across the episode.
 
 ---
 
-## Running the Trained Agent
+## What this is
 
-To watch the trained AI driver in action:
+A four-lane obstacle-avoidance environment written from scratch on Gymnasium and Pygame, and a PPO agent trained on it through five iterations. The environment presents forward occupancy across four lanes, and the agent selects a target lane every step. The problem is discrete decision making under a forward-looking observation, with lane position evolving continuously between decisions.
+
+The repository holds the environment, the training and evaluation code, one YAML file per experiment, a test suite, and the figures generated from the training logs.
+
+## Results
+
+The V5 agent evaluated over 100 episodes on the V5 environment:
+
+| Measure | Value |
+|---|---|
+| Episode length | 3,000 frames on 100 of 100 episodes |
+| Episode return | 3,190 |
+| Training | 5,242,880 environment transitions |
+| Policy network | 3 hidden layers of 1,024 units, 324 input features |
+| Wall clock | 39.9 minutes on one RTX 3060 |
+
+Policies compared over the same 100 held-out episode seeds:
+
+| Policy | Episode length (frames) | Reached the cap |
+|---|---|---|
+| PPO agent | 3,000 | 100% |
+| Uniform random action | 87 | 0% |
+| Hold the starting lane | 87 | 0% |
+
+The trained agent survives 34 times longer than uniform random action.
+
+Across one full episode the agent spends 1,010, 1,037, and 942 frames in lanes 0, 1, and 2 respectively, and 11 frames in lane 3. It uses three lanes as working space and treats the fourth as a reserve.
+
+## Figures
+
+![Survival across training](docs/figures/01_learning_curve.png)
+
+**Figure 1.** Episode length across training, from the monitor log of the V5 run. Grey points show each of the 2,669 individual episodes. The red line shows a moving mean over a 100 episode window. The dashed line marks the 3,000 frame episode cap. The x-axis is the cumulative sum of episode lengths, giving 5,215,527 environment transitions.
+
+![Training dashboard](docs/figures/05_dashboard.png)
+
+**Figure 2.** Four views of the same V5 run. (a) Mean episode return with a ±1 standard deviation band over a 100 episode window. (b) Mean episode length against the 3,000 frame cap. (c) Median return with the 25th to 75th percentile band. (d) Percentage of episodes reaching the cap within the rolling window, which climbs to roughly 90% by the end of training. All panels share the x-axis definition given in Figure 1.
+
+![Episode length distribution](docs/figures/04_length_distribution.png)
+
+**Figure 3.** Distribution of episode length over all 2,669 training episodes. The red dashed line marks the mean and the black dotted line the median. Across the whole run, 45.2% of episodes reached the 3,000 frame cap, a proportion that rises steadily as training progresses.
+
+## Development history
+
+Five iterations, each kept because the reason for moving on shaped what came next.
+
+| Iteration | Approach | Outcome |
+|---|---|---|
+| V1 | A language model called per frame to steer | Established the game loop and the logging format |
+| V2 | First PPO run, 5 feature observation, survival and crash reward only | Reached short episodes and showed the observation needed depth |
+| V3 | 81 feature lane occupancy grid, 4 frame stack, 1024×3 network | Published iteration, immediate lane changes |
+| V4 | V3 carried forward with revised plotting and evaluation | Fed the figure pipeline used here |
+| V5 | Interpolated lane changes, equal car sizes, pixel-overlap collision | 3,000 frames on 100 of 100 episodes |
+
+V3 and V5 use identical PPO hyperparameters. The difference between them is the environment mechanics, which makes the pair a single-variable comparison.
+
+The reward shaping in an early iteration carried a large lane-change penalty. The agent responded by holding one lane and accepting collisions, which is the correct solution to the reward as written. Reducing that penalty to 0.1 restored active dodging. This is the clearest lesson in the project: the agent optimises the reward it is given, so the reward specification carries the intent.
+
+### Learning rate
+
+A controlled comparison at 400,000 transitions on the corrected environment, one seed each:
+
+| Learning rate | 100k | 200k | 300k | 400k |
+|---|---|---|---|---|
+| 5e-5 | 98 | 136 | 535 | **894** |
+| 3e-4, the library default | 120 | 133 | 366 | 384 |
+
+The lower rate reaches more than double the episode length at 400,000 transitions. This result supports keeping 5e-5 as the default in `configs/`. It describes a single seed at one budget.
+
+## Environment
+
+| Property | Value |
+|---|---|
+| Observation | 4 lanes × 20 forward segments of 50 px, plus normalised lane position, 81 features |
+| Action | Discrete(4), the target lane |
+| Episode cap | 3,000 frames |
+| Obstacles | One spawn every 10 frames in a uniformly chosen lane, descending 10 px per frame |
+| Lane transition | Position interpolates toward the target lane at 0.15 per frame |
+| Reward | +1.0 survival, +0.1 in a centre lane, −0.1 on a lane change, −100.0 on contact |
+
+Every value is read from a config file. `crashcourse/config.py` holds the defaults and `configs/` holds one YAML per experiment.
+
+### Scope of the reported numbers
+
+The V5 evaluation above describes the V5 environment. Its lateral collision test uses a tolerance of 0.8 car widths, which leaves a 20 px corridor between adjacent lane centres. A policy that alternates between two adjacent lanes settles in that corridor and reaches the cap, so the V5 survival number reflects the environment alongside the agent.
+
+A tolerance of 1.0 places the collision boundary where two equal-width cars touch, and closes that corridor. This is the default in `crashcourse/config.py` and in `configs/v5_smooth.yaml`. Under it the same alternating policy reaches 74 frames, a hand-written safest-lane controller reaches 723 frames, and a fresh PPO run reaches 894 frames at 400,000 transitions with headroom remaining. `configs/ablations/permissive_collision.yaml` preserves the original tolerance so the earlier result stays reproducible, and `tests/test_env.py` covers both.
+
+Episode seeding runs through `self.np_random`, so `reset(seed=k)` reproduces an episode exactly. The test suite asserts this.
+
+## Reproducing
 
 ```bash
-python run_agent.py models/ppo_drive_final.zip --episodes 5
+pip install -r requirements.txt
+
+# watch the archived V5 agent
+python watch.py --config configs/ablations/permissive_collision.yaml \
+                --model models/ppo_drive_final.zip --episodes 3
+
+# train on the current default configuration
+python train.py --config configs/v5_smooth.yaml --seed 0
+
+# compare every policy over 200 held-out episode seeds
+python evaluate.py --config configs/v5_smooth.yaml --episodes 200
+
+# reproduce the original heavy V5 run
+python train.py --config configs/v5_full.yaml --seed 0
+
+# regenerate the figures
+python create_graphs.py --monitor logs/monitor.csv
+
+# run the study across every configuration
+python experiments/run_ablation.py --seeds 3
 ```
 
----
-
-## Training Results Overview
-
-The project achieved significant improvement across all metrics. The agent progressed from scoring negative points and crashing immediately to consistently achieving near-maximum scores of 2,995 frames out of the 3,000 frame maximum. This represents a 3,069% improvement over random baseline performance.
-
-| Metric | Result |
-|--------|--------|
-| Total Training Episodes | 44,992 |
-| Training-Wide Average Score | 12.31 |
-| Evaluation Average Score | 2,138 |
-| Peak Score | 2,995 frames |
-| Improvement Factor | 3,069% over random |
-
----
-
-## Training Visualisation
-
-### How the Agent Improved Over Time
-
-![Learning Curve](graphs/01_learning_curve.png)
-
-The learning curve shows the agent's progression throughout training. Early in the process, the agent struggled with negative rewards as it crashed into obstacles. As training continued, performance gradually improved. By the one million step mark, consistent scores of 1,000 or higher began appearing. Towards the end of training, the agent reliably scored between 1,000 and 3,000 points in each game.
-
-The blue dots represent individual game scores. The dark line shows the smoothed average, revealing a clear upward trend as the agent became more capable.
-
----
-
-### Training Consistency
-
-![Training Consistency](graphs/02_training_consistency.png)
-
-While the learning curve shows improving average performance, this graph reveals how the agent's reliability improved over time. Early in training, performance varied wildly—some games scored well whilst others ended in immediate crashes. This chaos reflects an agent still learning the basics.
-
-As training progressed, the standard deviation of rewards decreased dramatically. By the final stages, the agent's performance became highly predictable and consistent. Where early training saw rewards ranging from -100 to 500 in successive games, late training saw almost every game score between 1,500 and 3,000. This transition from chaotic learning to reliable mastery is a hallmark of successful reinforcement learning.
-
----
-
-### Distribution of All Game Scores
-
-![Reward Distribution](graphs/03_reward_distribution.png)
-
-This histogram displays every individual game score across the 44,992 total games played during training. The pattern reveals the learning process visually. Early in training, most games resulted in low scores as the agent was still learning. Later games clustered at higher scores as the agent mastered the task.
-
-The red vertical line shows the global training-wide average score (12.31), which is heavily weighted by early failures and crashes. The orange line shows the median (27.10). This low average across all training episodes reflects the reality of reinforcement learning: the agent spent hundreds of episodes crashing before it learned to survive. By the end of training, the agent's evaluation average reached 2,138—a stark contrast to this training-wide average.
-
----
-
-### Four Views of Training Progress
-
-![Performance Dashboard](graphs/04_performance_dashboard.png)
-
-The top-left panel shows reward consistency over time. Early training featured high variation in performance. As training progressed, the agent's scores became more reliable with smaller variations.
-
-The top-right panel displays episode duration. The agent's ability to survive longer gradually improved, reaching near-maximum duration by the final stages.
-
-The bottom-left panel shows the interquartile range, representing the typical game performance. Early training saw no meaningful difference between games. The breakthrough occurred in the middle training phase when typical performance jumped dramatically.
-
-The bottom-right panel indicates the percentage of games where the agent achieved perfect play by surviving to the maximum duration. This metric began near zero and rose to approximately 15-20% by training completion, demonstrating growing consistency.
-
----
-
-## Development Journey: Five Versions
-
-### Version 1: Initial Approach
-
-The first version used a simple neural network to process the road state. The agent was penalised heavily for lane changes in an attempt to encourage smooth driving. This backfired. The agent learned that staying motionless was safer than moving, resulting in a paradoxical paralysis. The system scored an average of 70 frames before crashing.
-
-### Version 2: The Convolutional Network Experiment
-
-Version 2 attempted to apply convolutional neural networks, treating the road as an image. This approach proved mismatched to the problem. Convolutional networks excel at processing large, complex images. The road in this game consists of only four lanes. The mathematical overhead of convolutional processing provided no benefit for such a simple input space.
-
-### Version 3: Fixing the Reward System
-
-The turning point arrived when the reward system was redesigned. The crash penalty was reduced from a catastrophic -500 to a manageable -50. The lane change penalty decreased from -0.5 to -0.1, making movement affordable rather than punishing. The obstacle spawn rate increased to force the agent to act and learn.
-
-These changes worked. The agent finally began dodging obstacles. Performance jumped from 70 frames to 150+ frames, peaking at 550. The agent had learned the basics of survival.
-
-### Version 4: Adding Temporal Awareness
-
-The next improvement gave the agent perception of time and motion. Frame stacking allowed the agent to see the previous four frames simultaneously, letting the neural network infer the speed of approaching obstacles. Vision depth increased to 20 segments, allowing the agent to see 1,000 pixels ahead rather than immediately.
-
-Additionally, the obstacle spawn rate was fine-tuned. During version 3, obstacles appeared every 8 frames, creating chaotic traffic that limited learning. Version 4 reduced this to every 12 frames, giving the agent breathing room to anticipate and execute dodging manoeuvres.
-
-With these changes, the agent transitioned from reactive dodging to predictive planning. Scores climbed to 1,000+ frames.
-
-### Version 5: Maximum Training Scale
-
-The final version pushed all parameters to their limits. The neural network expanded to three layers of 1,024 neurons each. The system ran 12 parallel game environments simultaneously to generate training data efficiently. The rollout buffer increased to 16,384 steps, holding nearly a gigabyte of experience data before sending it to the GPU in 2,048-sized batches for learning. Total training reached 5,000,000 steps.
-
-The results were decisive. The agent achieved near-perfect performance, regularly scoring the absolute maximum of 3,000 frames.
-
-#### Comparing Version 3 and Version 5
-
-![V3 vs V5 Comparison](graphs/05_v3_vs_v5_comparison.png)
-
-Version 3 represented a breakthrough moment. Version 5 represented mastery. The peak score increased from 550 to 3,000, a 445% improvement. The average score jumped from 240 to 2,138, a 791% improvement. Where version 3 performed inconsistently, version 5 achieved near-perfect play in two out of three games.
-
-The improvements came from two sources: better network architecture providing greater learning capacity, and extended training allowing the agent to refine its strategy over millions of games.
-
----
-
-## Project Contents
-
-The ai_drive_game_env.py file contains the core Gymnasium environment, wrapping the Pygame game logic into a standard reinforcement learning interface. It defines the 81-dimensional observation space, implements the reward function, and handles rendering.
-
-The train_rl_agent.py script performs the actual training. It manages multiprocessing, frame stacking, and GPU batch optimisation.
-
-The run_agent.py script loads a trained model and plays games with rendering, allowing visualisation of the agent's behaviour.
-
-The models directory contains the trained agents. The best_model.zip represents the top performer found during training evaluation.
-
-The graphs directory holds the five visualisation graphs generated from training data.
-
-The logs directory contains both the raw training metrics in monitor.csv and TensorBoard event files from each version.
-
----
-
-## Retraining the Model
-
-To retrain from scratch:
+Tests:
 
 ```bash
-python train_rl_agent.py --timesteps 5000000 --envs 12
+pytest tests/ -q
 ```
 
-The 12 parallel environments represent the maximum practical limit for Windows multiprocessing overhead. The 16,384 step rollout buffer effectively utilises available system memory.
+## Repository layout
+
+```
+crashcourse/        environment, config, policies, evaluation, figure style
+configs/            one YAML per experiment, ablations in configs/ablations/
+train.py            train one configuration with one seed
+evaluate.py         compare policies over shared held-out seeds
+watch.py            render a policy, or record it to a GIF
+create_graphs.py    figures from a training monitor log
+experiments/        the full study and the archive recording script
+tests/              environment contract and regression tests
+models/             the archived V5 policy
+logs/               the V5 training monitor and evaluation logs
+legacy/README.md    what the four earlier iterations contain
+```
+
+The four earlier iteration folders total 440 MB across two embedded git
+repositories and four model archives, so they are kept on disk and documented in
+`legacy/README.md`.
+
+## Evaluation protocol
+
+Every policy runs on the same list of held-out episode seeds, starting at 10,000, which keeps comparisons paired. Three quantities stay separate throughout:
+
+- **Episode length**, frames survived, capped at 3,000
+- **Return**, the cumulative PPO reward, which depends on the reward configuration in use
+- **Success rate**, the proportion of episodes reaching the cap
+
+Return values are comparable within one reward configuration. Episode length is comparable across all of them, which makes it the primary measure.
+
+Confidence intervals come from a bootstrap over episodes, at 10,000 resamples.
 
 ---
 
-## Summary
-
-The final agent achieved an average score of 2,138 across evaluation episodes and peak performance of 3,000 frames (the game maximum). This represents a 26-fold improvement over random play. The agent demonstrates robust decision-making, anticipatory obstacle avoidance, and consistent performance across varying randomly-generated obstacle patterns.
-
-The development process illustrates core principles in reinforcement learning. Reward function design proved more influential than raw computational power. Temporal information through frame stacking enabled the agent to understand motion. Extended training with larger networks allowed the agent to refine strategy to near-optimal levels.
-
-This project shows how an AI system can learn complex behaviour through patient iteration and careful system design.
-
----
-
-*Developed with assistance from Claude and Gemini AI tools.*
+Built with Claude and Gemini as collaborators.

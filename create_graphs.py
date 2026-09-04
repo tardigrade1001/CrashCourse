@@ -1,247 +1,168 @@
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import os
+"""Figures built from a training monitor log.
+
+    python create_graphs.py --monitor logs/monitor.csv
+
+The Stable-Baselines3 monitor CSV carries three columns: ``r`` episode return,
+``l`` episode length in frames, and ``t`` wall-clock seconds since the run
+started. Timesteps are recovered as the cumulative sum of ``l``, which is what
+the x-axis of every learning figure shows.
+
+Every visual choice lives in crashcourse/figstyle.py.
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
 from pathlib import Path
 
-# Set professional style (British English)
-sns.set_style("whitegrid")
-plt.rcParams['figure.figsize'] = (14, 8)
-plt.rcParams['font.size'] = 11
-plt.rcParams['lines.linewidth'] = 2.5
+import numpy as np
+import pandas as pd
 
-# Create graphs directory
-os.makedirs('graphs', exist_ok=True)
+REPO_ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(REPO_ROOT))
 
-# Read training data
-df = pd.read_csv('logs/monitor.csv', skiprows=1)
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
 
-print("Loading training data...")
-print(f"Total episodes: {len(df)}")
-print(f"Columns: {df.columns.tolist()}")
+from crashcourse import figstyle as fs  # noqa: E402
 
-# ============================================================================
-# Graph 1: Learning Curve - Episode Reward Over Time
-# ============================================================================
-fig, ax = plt.subplots(figsize=(14, 7))
+CAP = 3000  # episode length cap set by EnvConfig.max_frames
 
-# Smooth the rewards with rolling average for clarity
-window = 50
-df['reward_smoothed'] = df['r'].rolling(window=window, center=True).mean()
 
-# Plot raw + smoothed
-ax.scatter(df['t'], df['r'], alpha=0.3, s=10, label='Raw Episode Reward', color='steelblue')
-ax.plot(df['t'], df['reward_smoothed'], linewidth=2.5, label=f'Moving Avg (window={window})', color='darkblue')
+def load_monitor(path: Path) -> pd.DataFrame:
+    df = pd.read_csv(path, skiprows=1)
+    df["timesteps"] = df["l"].cumsum()
+    return df
 
-ax.set_xlabel('Total Timesteps', fontsize=12, fontweight='bold')
-ax.set_ylabel('Episode Reward', fontsize=12, fontweight='bold')
-ax.set_title('Learning Curve: Agent Reward Progression Over 5M Training Steps', fontsize=14, fontweight='bold', pad=20)
-ax.legend(fontsize=11, loc='lower right')
-ax.grid(True, alpha=0.3)
-ax.set_xlim(0, df['t'].max())
 
-# Add milestones
-milestones = [100000, 500000, 1000000, 2500000, 5000000]
-for milestone in milestones:
-    if milestone <= df['t'].max():
-        ax.axvline(x=milestone, color='red', linestyle='--', alpha=0.3, linewidth=1)
+def smooth(series: pd.Series, window: int) -> pd.Series:
+    return series.rolling(window=window, min_periods=1).mean()
 
-plt.tight_layout()
-plt.savefig('graphs/01_learning_curve.png', dpi=300, bbox_inches='tight')
-print("[OK] Saved: 01_learning_curve.png")
-plt.close()
 
-# ============================================================================
-# Graph 2: Training Consistency - Reward Variance Over Time
-# ============================================================================
-fig, ax = plt.subplots(figsize=(14, 7))
+def fig_learning_curve(df: pd.DataFrame, window: int) -> None:
+    fig, ax = plt.subplots(figsize=(6.4, 4.2))
+    ax.scatter(df["timesteps"], df["l"], s=6, alpha=0.22, color=fs.GREY,
+               linewidths=0, label="individual episodes", zorder=2)
+    ax.plot(df["timesteps"], smooth(df["l"], window), color=fs.RED,
+            label=f"moving mean, window {window} episodes", zorder=3)
+    ax.axhline(CAP, color=fs.CAP_LINE, linestyle="--", linewidth=1.2,
+               label=f"episode length cap, {CAP:,} frames", zorder=1)
+    fs.finish(ax, "Environment transitions", "Episode length (frames)",
+              "Survival across training")
+    ax.set_xlim(0, df["timesteps"].max())
+    ax.set_ylim(0, CAP * 1.08)
+    fs.save(fig, "01_learning_curve")
+    plt.close(fig)
 
-df['reward_std'] = df['r'].rolling(window=50, center=True).std()
 
-ax.fill_between(df['t'], 0, df['reward_std'], alpha=0.4, color='coral')
-ax.plot(df['t'], df['reward_std'], linewidth=2.5, label='Reward Variance (Std Dev)', color='darkred')
+def fig_return_curve(df: pd.DataFrame, window: int) -> None:
+    fig, ax = plt.subplots(figsize=(6.4, 4.2))
+    ax.plot(df["timesteps"], smooth(df["r"], window), color=fs.RED,
+            label=f"moving mean, window {window} episodes")
+    rolling_sd = df["r"].rolling(window=window, min_periods=1).std().fillna(0)
+    mean = smooth(df["r"], window)
+    ax.fill_between(df["timesteps"], mean - rolling_sd, mean + rolling_sd,
+                    color=fs.RED, alpha=fs.BAND_ALPHA, linewidth=0,
+                    label="±1 standard deviation")
+    fs.finish(ax, "Environment transitions", "Episode return",
+              "Return across training")
+    ax.set_xlim(0, df["timesteps"].max())
+    fs.save(fig, "02_return_curve")
+    plt.close(fig)
 
-ax.set_xlabel('Total Timesteps', fontsize=12, fontweight='bold')
-ax.set_ylabel('Standard Deviation of Rewards', fontsize=12, fontweight='bold')
-ax.set_title('Training Consistency: How Predictable Agent Performance Became Over Time', fontsize=14, fontweight='bold', pad=20)
-ax.legend(fontsize=11, loc='upper right')
-ax.grid(True, alpha=0.3)
 
-plt.tight_layout()
-plt.savefig('graphs/02_training_consistency.png', dpi=300, bbox_inches='tight')
-print("[OK] Saved: 02_training_consistency.png")
-plt.close()
+def fig_consistency(df: pd.DataFrame, window: int) -> None:
+    fig, ax = plt.subplots(figsize=(6.4, 4.2))
+    rolling_sd = df["r"].rolling(window=window, min_periods=2).std()
+    ax.plot(df["timesteps"], rolling_sd, color=fs.BLUE,
+            label=f"rolling standard deviation, window {window}")
+    fs.finish(ax, "Environment transitions", "Standard deviation of return",
+              "Run-to-run spread across training")
+    ax.set_xlim(0, df["timesteps"].max())
+    ax.set_ylim(bottom=0)
+    fs.save(fig, "03_consistency")
+    plt.close(fig)
 
-# ============================================================================
-# Graph 3: Reward Distribution Histogram
-# ============================================================================
-fig, ax = plt.subplots(figsize=(14, 7))
 
-# Create histogram of all rewards
-ax.hist(df['r'], bins=100, color='steelblue', edgecolor='black', alpha=0.7)
+def fig_distribution(df: pd.DataFrame) -> None:
+    fig, ax = plt.subplots(figsize=(6.4, 4.2))
+    ax.hist(df["l"], bins=40, color=fs.BLUE, edgecolor=fs.INK, linewidth=0.6)
+    ax.axvline(df["l"].mean(), color=fs.RED, linestyle="--",
+               label=f"mean {df['l'].mean():,.0f} frames")
+    ax.axvline(df["l"].median(), color=fs.INK, linestyle=":",
+               label=f"median {df['l'].median():,.0f} frames")
+    at_cap = (df["l"] >= CAP).mean()
+    fs.finish(ax, "Episode length (frames)", "Episodes",
+              f"Episode length distribution, {len(df):,} episodes")
+    ax.annotate(f"{at_cap:.1%} of episodes reached the cap",
+                xy=(0.97, 0.86), xycoords="axes fraction", ha="right",
+                fontsize=10, color=fs.INK,
+                bbox=dict(facecolor="white", edgecolor="none", pad=2))
+    fs.save(fig, "04_length_distribution")
+    plt.close(fig)
 
-# Add statistics lines
-mean_reward = df['r'].mean()
-median_reward = df['r'].median()
-ax.axvline(mean_reward, color='red', linestyle='--', linewidth=2.5, label=f'Mean: {mean_reward:.0f}')
-ax.axvline(median_reward, color='orange', linestyle='--', linewidth=2.5, label=f'Median: {median_reward:.0f}')
 
-ax.set_xlabel('Episode Reward', fontsize=12, fontweight='bold')
-ax.set_ylabel('Frequency (Number of Episodes)', fontsize=12, fontweight='bold')
-ax.set_title('Distribution of Episode Rewards Across All Training', fontsize=14, fontweight='bold', pad=20)
-ax.legend(fontsize=11, loc='upper right')
-ax.grid(True, alpha=0.3, axis='y')
+def fig_dashboard(df: pd.DataFrame, window: int) -> None:
+    fig, axes = plt.subplots(2, 2, figsize=(10.4, 7.6))
+    steps = df["timesteps"]
 
-plt.tight_layout()
-plt.savefig('graphs/03_reward_distribution.png', dpi=300, bbox_inches='tight')
-print("[OK] Saved: 03_reward_distribution.png")
-plt.close()
+    ax = axes[0, 0]
+    mean = smooth(df["r"], window)
+    sd = df["r"].rolling(window=window, min_periods=1).std().fillna(0)
+    ax.plot(steps, mean, color=fs.RED, label="mean return")
+    ax.fill_between(steps, mean - sd, mean + sd, color=fs.RED,
+                    alpha=fs.BAND_ALPHA, linewidth=0, label="±1 SD")
+    fs.finish(ax, "Environment transitions", "Return", "Return")
+    fs.panel_tag(ax, "(a)")
 
-# ============================================================================
-# Graph 4: Performance Metrics Summary
-# ============================================================================
-fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-fig.suptitle('Training Performance Summary Dashboard', fontsize=16, fontweight='bold', y=0.995)
+    ax = axes[0, 1]
+    ax.plot(steps, smooth(df["l"], window), color=fs.BLUE, label="mean length")
+    ax.axhline(CAP, color=fs.CAP_LINE, linestyle="--", linewidth=1.2, label="cap")
+    fs.finish(ax, "Environment transitions", "Frames", "Episode length")
+    fs.panel_tag(ax, "(b)")
 
-# Subplot 1: Reward Statistics Over Time
-ax = axes[0, 0]
-rolling_window = 100
-df['reward_mean'] = df['r'].rolling(window=rolling_window).mean()
-df['reward_std'] = df['r'].rolling(window=rolling_window).std()
-ax.plot(df['t'], df['reward_mean'], linewidth=2, label='Mean', color='darkblue')
-ax.fill_between(df['t'], df['reward_mean'] - df['reward_std'], df['reward_mean'] + df['reward_std'],
-                 alpha=0.2, color='blue', label='±1 Std Dev')
-ax.set_xlabel('Timesteps')
-ax.set_ylabel('Reward')
-ax.set_title('Reward Mean ± Std Dev')
-ax.legend()
-ax.grid(True, alpha=0.3)
+    ax = axes[1, 0]
+    q25 = df["r"].rolling(window=window, min_periods=1).quantile(0.25)
+    q75 = df["r"].rolling(window=window, min_periods=1).quantile(0.75)
+    med = df["r"].rolling(window=window, min_periods=1).median()
+    ax.fill_between(steps, q25, q75, color=fs.ORANGE, alpha=0.3, linewidth=0,
+                    label="25th to 75th percentile")
+    ax.plot(steps, med, color=fs.ORANGE, label="median")
+    fs.finish(ax, "Environment transitions", "Return", "Interquartile range")
+    fs.panel_tag(ax, "(c)")
 
-# Subplot 2: Episode Length Statistics
-ax = axes[0, 1]
-df['length_mean'] = df['l'].rolling(window=rolling_window).mean()
-df['length_std'] = df['l'].rolling(window=rolling_window).std()
-ax.plot(df['t'], df['length_mean'], linewidth=2, label='Mean Length', color='darkgreen')
-ax.fill_between(df['t'], df['length_mean'] - df['length_std'], df['length_mean'] + df['length_std'],
-                 alpha=0.2, color='green', label='±1 Std Dev')
-ax.axhline(y=3000, color='red', linestyle='--', alpha=0.5, label='Max Duration')
-ax.set_xlabel('Timesteps')
-ax.set_ylabel('Length (frames)')
-ax.set_title('Episode Duration Mean ± Std Dev')
-ax.legend()
-ax.grid(True, alpha=0.3)
+    ax = axes[1, 1]
+    at_cap = (df["l"] >= CAP).rolling(window=window, min_periods=1).mean() * 100
+    ax.plot(steps, at_cap, color=fs.GREEN, label="episodes reaching the cap")
+    fs.finish(ax, "Environment transitions", "Percent", "Episodes at the cap")
+    fs.panel_tag(ax, "(d)")
 
-# Subplot 3: Reward Percentiles
-ax = axes[1, 0]
-percentiles = df['r'].rolling(window=rolling_window).quantile(0.25)
-median = df['r'].rolling(window=rolling_window).quantile(0.50)
-high_percentiles = df['r'].rolling(window=rolling_window).quantile(0.75)
-ax.fill_between(df['t'], percentiles, high_percentiles, alpha=0.3, color='orange', label='25th-75th Percentile')
-ax.plot(df['t'], median, linewidth=2, color='darkorange', label='Median')
-ax.set_xlabel('Timesteps')
-ax.set_ylabel('Reward')
-ax.set_title('Reward Range (Interquartile)')
-ax.legend()
-ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    fs.save(fig, "05_dashboard")
+    plt.close(fig)
 
-# Subplot 4: Training Progress (% episodes maxing out)
-ax = axes[1, 1]
-rolling_window = 100
-df['max_out'] = (df['l'] >= 2999).astype(int)
-df['max_out_pct'] = df['max_out'].rolling(window=rolling_window).mean() * 100
-ax.plot(df['t'], df['max_out_pct'], linewidth=2.5, color='purple')
-ax.fill_between(df['t'], 0, df['max_out_pct'], alpha=0.3, color='purple')
-ax.set_xlabel('Timesteps')
-ax.set_ylabel('% Episodes Maxing Out')
-ax.set_title('Consistency: % of Episodes Reaching Max Duration')
-ax.set_ylim(0, 105)
-ax.grid(True, alpha=0.3)
 
-plt.tight_layout()
-plt.savefig('graphs/04_performance_dashboard.png', dpi=300, bbox_inches='tight')
-print("[OK] Saved: 04_performance_dashboard.png")
-plt.close()
+def main() -> None:
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--monitor", default="logs/monitor.csv")
+    p.add_argument("--window", type=int, default=100, help="smoothing window in episodes")
+    args = p.parse_args()
 
-# ============================================================================
-# Graph 5: V3 vs V5 Performance Comparison
-# ============================================================================
-fig, ax = plt.subplots(figsize=(14, 8))
+    path = REPO_ROOT / args.monitor
+    df = load_monitor(path)
+    fs.apply()
 
-versions = ['V3', 'V5']
-peak_scores = [550, 3000]
-avg_scores = [240, 2138]
+    print(f"{len(df):,} episodes, {df['l'].sum():,} environment transitions, "
+          f"{df['t'].max() / 60:.1f} minutes of wall clock")
 
-x = np.arange(len(versions))
-width = 0.35
+    fig_learning_curve(df, args.window)
+    fig_return_curve(df, args.window)
+    fig_consistency(df, args.window)
+    fig_distribution(df)
+    fig_dashboard(df, args.window)
 
-bars1 = ax.bar(x - width/2, peak_scores, width, label='Peak Score', color='steelblue', edgecolor='black', linewidth=1.5)
-bars2 = ax.bar(x + width/2, avg_scores, width, label='Average Score', color='coral', edgecolor='black', linewidth=1.5)
 
-ax.set_ylabel('Score (frames)', fontsize=13, fontweight='bold')
-ax.set_title('V3 vs V5: Performance Improvement Comparison', fontsize=15, fontweight='bold', pad=20)
-ax.set_xticks(x)
-ax.set_xticklabels(versions, fontsize=13, fontweight='bold')
-ax.legend(fontsize=12, loc='upper left')
-ax.grid(True, alpha=0.3, axis='y')
-ax.set_ylim(0, 3500)
-
-# Add score value labels on bars
-for bar in bars1:
-    height = bar.get_height()
-    ax.text(bar.get_x() + bar.get_width()/2., height + 80,
-            f'{int(height)}', ha='center', va='bottom', fontweight='bold', fontsize=12)
-
-for bar in bars2:
-    height = bar.get_height()
-    ax.text(bar.get_x() + bar.get_width()/2., height + 80,
-            f'{int(height)}', ha='center', va='bottom', fontweight='bold', fontsize=12)
-
-# Add improvement percentages with arrow annotations
-improvement_peak = ((3000 - 550) / 550) * 100
-improvement_avg = ((2138 - 240) / 240) * 100
-
-# Peak score improvement label
-ax.annotate('', xy=(1.165, 2900), xytext=(-0.165, 550),
-            arrowprops=dict(arrowstyle='->', lw=2, color='darkblue', alpha=0.5))
-ax.text(0.5, 1800, f'+{improvement_peak:.0f}%', ha='center', fontsize=14,
-        bbox=dict(boxstyle='round,pad=0.8', facecolor='yellow', alpha=0.7, edgecolor='black', linewidth=2),
-        fontweight='bold')
-
-# Average score improvement label
-ax.annotate('', xy=(1.235, 2050), xytext=(-0.235, 240),
-            arrowprops=dict(arrowstyle='->', lw=2, color='darkorange', alpha=0.5))
-ax.text(0.5, 700, f'+{improvement_avg:.0f}%', ha='center', fontsize=14,
-        bbox=dict(boxstyle='round,pad=0.8', facecolor='lightgreen', alpha=0.7, edgecolor='black', linewidth=2),
-        fontweight='bold')
-
-plt.tight_layout()
-plt.savefig('graphs/05_v3_vs_v5_comparison.png', dpi=300, bbox_inches='tight')
-print("[OK] Saved: 05_v3_vs_v5_comparison.png")
-plt.close()
-
-# ============================================================================
-# Summary Statistics
-# ============================================================================
-print("\n" + "="*60)
-print("TRAINING SUMMARY STATISTICS")
-print("="*60)
-print(f"Total Episodes: {len(df)}")
-print(f"Total Timesteps: {df['t'].max():,}")
-print(f"\nReward Statistics:")
-print(f"  Minimum: {df['r'].min():.2f}")
-print(f"  Maximum: {df['r'].max():.2f}")
-print(f"  Mean: {df['r'].mean():.2f}")
-print(f"  Median: {df['r'].median():.2f}")
-print(f"  Std Dev: {df['r'].std():.2f}")
-print(f"\nEpisode Length Statistics:")
-print(f"  Minimum: {df['l'].min():.0f} frames")
-print(f"  Maximum: {df['l'].max():.0f} frames")
-print(f"  Mean: {df['l'].mean():.2f} frames")
-print(f"  % at Max (>=2999 frames): {(df['l'] >= 2999).sum() / len(df) * 100:.1f}%")
-print(f"\nImprovement from Start to End:")
-print(f"  Early Avg (first 1000 episodes): {df['r'].iloc[:1000].mean():.2f}")
-print(f"  Late Avg (last 1000 episodes): {df['r'].iloc[-1000:].mean():.2f}")
-print(f"  Improvement: {(df['r'].iloc[-1000:].mean() - df['r'].iloc[:1000].mean()):.2f} (+{((df['r'].iloc[-1000:].mean() - df['r'].iloc[:1000].mean()) / abs(df['r'].iloc[:1000].mean()) * 100):.1f}%)")
-print("="*60)
-print("\nAll graphs saved to: graphs/")
+if __name__ == "__main__":
+    main()

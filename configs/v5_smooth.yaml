@@ -1,0 +1,21 @@
+name: v5_smooth
+description: >
+  Canonical configuration. Lane changes interpolate toward the target lane and
+  collision is tested by lateral overlap in pixels. Hyperparameters match v3.
+env:
+  lane_transition: smooth
+  lerp_alpha: 0.15
+  obs_depth: 20
+  position_feature: lane
+  spawn_interval: 10
+  max_frames: 3000
+  lane_readout: centered
+train:
+  total_timesteps: 1000000
+  n_envs: 8
+  n_stack: 4
+  net_arch: [1024, 1024, 1024]
+  n_steps: 2048
+  batch_size: 256
+  learning_rate: 0.00005
+  ent_coef: 0.01

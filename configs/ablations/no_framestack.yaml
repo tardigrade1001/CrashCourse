@@ -1,0 +1,4 @@
+name: no_framestack
+description: Single frame. Tests whether temporal stacking earns its place when obstacle speed is constant.
+env: {lane_transition: smooth, obs_depth: 20, position_feature: lane}
+train: {total_timesteps: 1000000, n_envs: 8, n_stack: 1, net_arch: [1024, 1024, 1024], n_steps: 2048, batch_size: 256, learning_rate: 0.00005, ent_coef: 0.01}

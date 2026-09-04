@@ -1,0 +1,4 @@
+name: legacy_readout
+description: Restores the original lane rounding, which reported a lane index 25px ahead of the car body.
+env: {lane_transition: smooth, obs_depth: 20, position_feature: lane, lane_readout: legacy}
+train: {total_timesteps: 1000000, n_envs: 8, n_stack: 4, net_arch: [1024, 1024, 1024], n_steps: 2048, batch_size: 256, learning_rate: 0.00005, ent_coef: 0.01}

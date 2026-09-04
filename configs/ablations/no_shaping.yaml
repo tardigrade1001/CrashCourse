@@ -1,0 +1,4 @@
+name: no_shaping
+description: Survival and crash terms only. Tests whether the centre bonus and lane change penalty change the policy or only the return.
+env: {lane_transition: smooth, obs_depth: 20, position_feature: lane, reward_center_bonus: 0.0, reward_lane_change: 0.0}
+train: {total_timesteps: 1000000, n_envs: 8, n_stack: 4, net_arch: [1024, 1024, 1024], n_steps: 2048, batch_size: 256, learning_rate: 0.00005, ent_coef: 0.01}

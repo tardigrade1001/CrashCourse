@@ -48,11 +48,10 @@ class VisualProgressCallback(BaseCallback):
             env.close()
         return True
 
-def train(timesteps=5000000, n_envs=12):
+def train(timesteps=5000000, n_envs=12, net_size=1024, net_layers=3, n_steps=16384, batch_size=2048):
     os.makedirs("models", exist_ok=True)
     os.makedirs("logs", exist_ok=True)
 
-    # 12 envs is the 'Safe Limit' for Windows subprocess overhead
     env = SubprocVecEnv([make_env() for _ in range(n_envs)])
     env = VecMonitor(env, "logs")
     env = VecFrameStack(env, n_stack=4)
@@ -66,23 +65,35 @@ def train(timesteps=5000000, n_envs=12):
 
     visual_callback = VisualProgressCallback(eval_freq=40000)
 
-    # MAXIMUM DATA IN RAM: 12 envs * 16384 steps * 4 frames = HUGE memory usage
-    model = PPO(
-        "MlpPolicy",
-        env,
-        verbose=1,
-        tensorboard_log="./logs/",
-        device="cuda",
-        batch_size=2048,
-        n_steps=16384,   # Quadrupled rollout size to use your 48GB RAM
-        policy_kwargs=dict(net_arch=[1024, 1024, 1024]), # Gigantic brain
-        learning_rate=5e-5,
-        ent_coef=0.01,
-        gamma=0.99,
-        gae_lambda=0.95,
-    )
+    checkpoint_path = "models/ppo_drive_final.zip"
+    net_arch = [net_size] * net_layers
 
-    print(f"Starting V5.1 training: {timesteps} steps on {n_envs} envs...")
+    if os.path.exists(checkpoint_path):
+        print(f"Loading checkpoint from {checkpoint_path}...")
+        model = PPO.load(checkpoint_path, env=env, device="cuda")
+        print(f"Checkpoint loaded. Continuing training...")
+    else:
+        print(f"No checkpoint found. Creating new model with network: {net_arch}")
+        model = PPO(
+            "MlpPolicy",
+            env,
+            verbose=1,
+            tensorboard_log="./logs/",
+            device="cuda",
+            batch_size=batch_size,
+            n_steps=n_steps,
+            policy_kwargs=dict(net_arch=net_arch),
+            learning_rate=5e-5,
+            ent_coef=0.01,
+            gamma=0.99,
+            gae_lambda=0.95,
+        )
+
+    print(f"Training: {timesteps:,} timesteps on {n_envs} envs")
+    print(f"  Network: {net_layers}x{net_size} neurons")
+    print(f"  Buffer size (n_steps): {n_steps:,}")
+    print(f"  Batch size: {batch_size:,}")
+
     model.learn(
         total_timesteps=timesteps,
         callback=[eval_callback, visual_callback],
@@ -97,8 +108,19 @@ if __name__ == "__main__":
         import multiprocessing
         multiprocessing.freeze_support()
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--timesteps", type=int, default=5000000)
-    parser.add_argument("--envs", type=int, default=12)
+    parser = argparse.ArgumentParser(description="Train PPO agent on driving game")
+    parser.add_argument("--timesteps", type=int, default=5000000, help="Total training timesteps")
+    parser.add_argument("--envs", type=int, default=12, help="Number of parallel environments")
+    parser.add_argument("--net-size", type=int, default=1024, help="Neurons per layer in network")
+    parser.add_argument("--net-layers", type=int, default=3, help="Number of layers in network")
+    parser.add_argument("--n-steps", type=int, default=16384, help="Rollout buffer size")
+    parser.add_argument("--batch-size", type=int, default=2048, help="Batch size for training")
     args = parser.parse_args()
-    train(timesteps=args.timesteps, n_envs=args.envs)
+    train(
+        timesteps=args.timesteps,
+        n_envs=args.envs,
+        net_size=args.net_size,
+        net_layers=args.net_layers,
+        n_steps=args.n_steps,
+        batch_size=args.batch_size
+    )

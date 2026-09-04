@@ -1,0 +1,7 @@
+name: long_rollout
+description: >
+  Restores the original rollout buffer of 16384 steps per environment. At eight
+  environments that is 131072 transitions per policy update, which buys seven
+  updates within the standard budget.
+env: {lane_transition: smooth, obs_depth: 20, position_feature: lane}
+train: {total_timesteps: 1000000, n_envs: 8, n_stack: 4, net_arch: [1024, 1024, 1024], n_steps: 16384, batch_size: 2048, learning_rate: 0.00005, ent_coef: 0.01}

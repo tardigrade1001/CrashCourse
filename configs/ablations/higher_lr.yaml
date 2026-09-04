@@ -1,0 +1,5 @@
+name: higher_lr
+description: >
+  Learning rate 3e-4, the Stable-Baselines3 default, against the original 5e-5.
+env: {lane_transition: smooth, obs_depth: 20, position_feature: lane}
+train: {total_timesteps: 1000000, n_envs: 8, n_stack: 4, net_arch: [1024, 1024, 1024], n_steps: 2048, batch_size: 256, learning_rate: 0.0003, ent_coef: 0.01}

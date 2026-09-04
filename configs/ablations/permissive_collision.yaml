@@ -1,0 +1,7 @@
+name: permissive_collision
+description: >
+  Restores the original lateral collision tolerance of 0.8, which leaves a 20px
+  corridor between adjacent lanes that no obstacle can occupy. Kept so the
+  degenerate hover policy remains reproducible.
+env: {lane_transition: smooth, obs_depth: 20, position_feature: lane, collision_x_tol: 0.8}
+train: {total_timesteps: 1000000, n_envs: 8, n_stack: 4, net_arch: [1024, 1024, 1024], n_steps: 2048, batch_size: 256, learning_rate: 0.00005, ent_coef: 0.01}

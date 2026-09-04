@@ -1,0 +1,39 @@
+name: _smoketest
+description: tiny run to check the pipeline
+env:
+  lanes: 4
+  screen_width: 400
+  screen_height: 600
+  car_size: 50
+  obs_depth: 20
+  segment_px: 50
+  position_feature: lane
+  lane_transition: smooth
+  lerp_alpha: 0.15
+  obstacle_speed: 10
+  spawn_interval: 10
+  max_frames: 3000
+  collision_x_tol: 1.0
+  reward_survive: 1.0
+  reward_center_bonus: 0.1
+  reward_lane_change: -0.1
+  reward_crash: -100.0
+  lane_readout: centered
+train:
+  algo: PPO
+  policy: MlpPolicy
+  total_timesteps: 8192
+  n_envs: 4
+  n_stack: 4
+  net_arch:
+  - 64
+  - 64
+  n_steps: 512
+  batch_size: 256
+  learning_rate: 0.0003
+  ent_coef: 0.01
+  gamma: 0.99
+  gae_lambda: 0.95
+  device: cpu
+  eval_freq_steps: 4096
+  n_eval_episodes: 3

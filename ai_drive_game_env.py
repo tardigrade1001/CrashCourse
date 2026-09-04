@@ -103,6 +103,8 @@ class DriveEnv(gym.Env):
         super().reset(seed=seed)
 
         self.car_lane = random.randint(0, 3)
+        self.car_x = self.car_lane * LANE_WIDTH + (LANE_WIDTH - 50) // 2  # Smooth X position
+        self.target_lane = self.car_lane
         self.car_y = SCREEN_HEIGHT - 100
         self.obstacles = []
         self.obstacle_colors = {}
@@ -133,7 +135,15 @@ class DriveEnv(gym.Env):
 
     def step(self, action):
         self.prev_lane = self.car_lane
-        self.car_lane = action
+        self.target_lane = action
+
+        # Smooth lane transition (lerp car_x toward target lane)
+        target_x = self.target_lane * LANE_WIDTH + (LANE_WIDTH - 50) // 2
+        self.car_x += (target_x - self.car_x) * 0.15  # Smooth interpolation
+
+        # Update car_lane based on proximity to lanes
+        self.car_lane = round(self.car_x / LANE_WIDTH)
+        self.car_lane = max(0, min(3, self.car_lane))  # Clamp to 0-3
 
         # Move obstacles
         self.obstacles = [(o[0], o[1] + 10, o[2]) for o in self.obstacles]
@@ -143,9 +153,8 @@ class DriveEnv(gym.Env):
         self.frame_count += 1
         if self.frame_count % 10 == 0:
             lane = random.randint(0, 3)
-            obs_id = (lane, self.frame_count)  # Use unique ID based on lane + frame
+            obs_id = (lane, self.frame_count)
             self.obstacles.append((lane, -100, obs_id))
-            # Assign a random color to this obstacle
             self.obstacle_colors[obs_id] = random.choice(CAR_COLORS)
 
         terminated = False
@@ -159,9 +168,14 @@ class DriveEnv(gym.Env):
         if self.car_lane != self.prev_lane:
             reward -= 0.1
 
+        # Collision detection (both cars now 50x50, use actual X position)
+        car_width, car_height = 50, 50
         for obs_lane, obs_y, obs_id in self.obstacles:
-            if obs_lane == self.car_lane:
-                if self.car_y < obs_y + 40 and self.car_y + 60 > obs_y:
+            obs_x = obs_lane * LANE_WIDTH + (LANE_WIDTH - car_width) // 2
+            # Check X overlap (with some tolerance for smooth transitions)
+            if abs(self.car_x - obs_x) < car_width * 0.8:
+                # Check Y overlap
+                if self.car_y < obs_y + car_height and self.car_y + car_height > obs_y:
                     terminated = True
                     reward = -100.0
                     break
@@ -196,16 +210,14 @@ class DriveEnv(gym.Env):
             # Draw textured road
             CarDrawer.draw_road_texture(self.screen, SCREEN_WIDTH, SCREEN_HEIGHT, self.frame_count)
 
-            car_x = self.car_lane * LANE_WIDTH + (LANE_WIDTH - 40) // 2
+            # Draw player car (white, 50x50)
+            CarDrawer.draw_car(self.screen, int(self.car_x), self.car_y, 50, 50, (255, 255, 255), is_player=True)
 
-            # Draw player car (white sports car)
-            CarDrawer.draw_car(self.screen, car_x, self.car_y, 40, 60, (255, 255, 255), is_player=True)
-
-            # Draw obstacles with random colors
+            # Draw obstacles with random colors (50x50 to match player)
             for obs_lane, obs_y, obs_id in self.obstacles:
-                obs_x = obs_lane * LANE_WIDTH + (LANE_WIDTH - 40) // 2
+                obs_x = obs_lane * LANE_WIDTH + (LANE_WIDTH - 50) // 2
                 obs_color = self.obstacle_colors.get(obs_id, (200, 50, 50))
-                CarDrawer.draw_car(self.screen, obs_x, obs_y, 40, 40, obs_color, is_player=False)
+                CarDrawer.draw_car(self.screen, obs_x, obs_y, 50, 50, obs_color, is_player=False)
             
             # Simple score display without complex font handling during possible closure
             if pygame.font.get_init():
