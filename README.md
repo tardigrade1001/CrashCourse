@@ -58,13 +58,25 @@ Five iterations, each kept because the reason for moving on shaped what came nex
 
 | Iteration | Approach | Outcome |
 |---|---|---|
-| V1 | A language model called per frame to steer | Established the game loop and the logging format |
+| V1 | A hosted vision model watching the screen and naming the lane | Measured the control-loop rate that the approach can sustain |
 | V2 | First PPO run, 5 feature observation, survival and crash reward only | Reached short episodes and showed the observation needed depth |
 | V3 | 81 feature lane occupancy grid, 4 frame stack, 1024×3 network | Published iteration, immediate lane changes |
 | V4 | V3 carried forward with revised plotting and evaluation | Fed the figure pipeline used here |
 | V5 | Interpolated lane changes, equal car sizes, pixel-overlap collision | 3,000 frames on 100 of 100 episodes |
 
 V3 and V5 use identical PPO hyperparameters. The difference between them is the environment mechanics, which makes the pair a single-variable comparison.
+
+### V1: a hosted vision model inside the control loop
+
+The original idea was to let a vision model watch the screen live and drive. V1 streamed the game to `gemini-3.1-flash-live-preview` over the Live API and applied whichever lane the model named. The game advanced at 30 FPS and the connector requested a decision every 0.7 seconds.
+
+The decision interval measured across the logged session averaged 0.94 seconds, with a median of 0.90 and a tail reaching 3.02. That is a decision rate of 1.07 Hz against a loop advancing 30 times per second. In the same session an obstacle crossed the full 360 px height in roughly 3 seconds at the starting speed, giving the model about three decisions per obstacle at best.
+
+A second pass reduced obstacle speed by half and widened the spawn interval, buying one to two seconds per decision. Across the 59 logged decisions the model named lane 2 every time and held that output for the whole session.
+
+The measurement carries the design decision that followed. Closing a loop at this rate calls for a policy that runs inside the loop, and a PPO forward pass on a local GPU returns an action in well under a millisecond. That is where V2 begins, and it is the reason the project moved to reinforcement learning at all.
+
+`legacy/car/` holds the connector, the game, and `ai_drive_log.csv`, which is the source of the timings above.
 
 The reward shaping in an early iteration carried a large lane-change penalty. The agent responded by holding one lane and accepting collisions, which is the correct solution to the reward as written. Reducing that penalty to 0.1 restored active dodging. This is the clearest lesson in the project: the agent optimises the reward it is given, so the reward specification carries the intent.
 
@@ -144,12 +156,14 @@ experiments/        the full study and the archive recording script
 tests/              environment contract and regression tests
 models/             the archived V5 policy
 logs/               the V5 training monitor and evaluation logs
-legacy/README.md    what the four earlier iterations contain
+legacy/car/         V1, the vision-model connector, game, and decision log
+legacy/car2/        V2, the first PPO scripts
+legacy/README.md    what all four earlier iterations contain
 ```
 
-The four earlier iteration folders total 440 MB across two embedded git
-repositories and four model archives, so they are kept on disk and documented in
-`legacy/README.md`.
+V1 and V2 sources are included at 143 KB. V3 and V4 together hold two embedded
+git repositories and four model archives totalling 440 MB, so they stay on disk
+and `legacy/README.md` records what each one contains.
 
 ## Evaluation protocol
 
