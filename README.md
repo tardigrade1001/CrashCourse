@@ -94,8 +94,6 @@ A second pass reduced obstacle speed by half and widened the spawn interval, buy
 
 The measurement carries the design decision that followed. Closing a loop at this rate calls for a policy that runs inside the loop, and a PPO forward pass on a local GPU returns an action in well under a millisecond. That is where V2 begins, and it is the reason the project moved to reinforcement learning at all.
 
-`legacy/car/` holds the connector, the game, and `ai_drive_log.csv`, which is the source of the timings above.
-
 ### V6: revisiting the hosted model
 
 V6 returns to the V1 idea with the same key and model family. Holding one Live
@@ -103,7 +101,7 @@ session open for an episode and sending the lane occupancy as text puts the
 decision rate at 2.04 Hz over 465 logged decisions, against the 1.07 Hz V1
 measured. `crashcourse/gemini_policy.py` holds it.
 
-Any controller can be run at a fixed decision rate, holding its action in
+Any controller can be run at a fixed decision rate, holding one action in
 between, which is what a hosted model does inside a real loop. On that axis the
 hosted model holds 175, 173, and 154 frames at 10, 25, and 60 steps between
 decisions. The hand-written controller reaches 544 frames when it decides every
@@ -121,7 +119,7 @@ spawns an obstacle every 10 frames exactly, and a controller deciding on a
 matching beat samples the world in a fixed phase. `EnvConfig.spawn_jitter`
 varies the period, and `configs/v6_decorrelated.yaml` spreads it over 6 to 14
 frames with the mean held at 10. Moving to the jittered version, uniform random
-action keeps 96% of its result, the hand-written controller keeps 64%, and the
+action keeps 96% of the result, the hand-written controller keeps 64%, and the
 V5 agent keeps 27%. The agent had a periodic schedule available throughout
 training. `experiments/spawn_clock.py` reproduces the comparison and
 `tests/test_env.py` covers it.
@@ -155,7 +153,7 @@ Every value is read from a config file. `crashcourse/config.py` holds the defaul
 
 ### Scope of the reported numbers
 
-Every evaluation names its collision tolerance, and the two settings are tabulated under
+Every evaluation names the collision tolerance used, and the two settings are tabulated under
 [Results](#results). At 0.8 the 20 px corridor between adjacent lane centres is wide enough for a
 policy alternating between two lanes to settle inside it, so a V5 number describes the environment
 alongside the agent. At 1.0 that corridor closes.
@@ -217,14 +215,11 @@ experiments/        the study, the spawn-clock run, the cadence figures,
 tests/              environment contract and regression tests
 models/             the archived V5 policy
 logs/               the V5 training monitor and evaluation logs
-legacy/car/         V1, the vision-model connector, game, and decision log
-legacy/car2/        V2, the first PPO scripts
-legacy/README.md    what all four earlier iterations contain
 ```
 
-V1 and V2 sources are included at 143 KB. V3 and V4 together hold two embedded
-git repositories and four model archives totalling 440 MB, so they stay on disk
-and `legacy/README.md` records what each one contains.
+The four earlier iterations stay on local disk. Two of them carry embedded git
+repositories and four model archives totalling 440 MB, and the development
+history above records what each one did.
 
 ## Evaluation protocol
 

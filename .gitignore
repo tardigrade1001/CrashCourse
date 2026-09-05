@@ -34,3 +34,6 @@ legacy/*
 *API_KEY*
 *.key
 .env
+
+# archived earlier versions, kept locally
+legacy/
