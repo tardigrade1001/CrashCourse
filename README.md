@@ -4,7 +4,8 @@ PPO obstacle avoidance in a custom Gymnasium environment, built and iterated fro
 
 ![The V5 agent driving](docs/demo.gif)
 
-The agent above is the V5 policy running on the V5 environment. It holds the 3,000 frame cap and makes 243 lane changes across the episode.
+The agent above is the V5 policy running on the V5 environment at collision tolerance 0.8. It
+holds the 3,000 frame cap and makes 243 lane changes across the episode.
 
 ---
 
@@ -35,6 +36,22 @@ Policies compared over the same 100 held-out episode seeds:
 | Hold the starting lane | 87 | 0% |
 
 The trained agent survives 34 times longer than uniform random action.
+
+The lateral collision test takes a tolerance in car widths, and both settings ship. Every number
+here names the one it used.
+
+| tolerance | collision boundary | corridor between adjacent lane centres |
+|---|---|---|
+| 0.8 | cars overlap by a fifth of a width | 20 px |
+| 1.0 | two equal-width cars touch | closed |
+
+The V5 figures above use 0.8. Under 1.0 an alternating two-lane policy reaches 74 frames, a
+hand-written safest-lane controller reaches 723, and a fresh PPO run reaches 894 at 400,000
+transitions with headroom remaining.
+
+Tolerance 1.0 is the default in `crashcourse/config.py` and `configs/v5_smooth.yaml`.
+`configs/ablations/permissive_collision.yaml` holds 0.8 so both reproduce, and `tests/test_env.py`
+covers each.
 
 Across one full episode the agent spends 1,010, 1,037, and 942 frames in lanes 0, 1, and 2 respectively, and 11 frames in lane 3. It uses three lanes as working space and treats the fourth as a reserve.
 
@@ -138,9 +155,10 @@ Every value is read from a config file. `crashcourse/config.py` holds the defaul
 
 ### Scope of the reported numbers
 
-The V5 evaluation above describes the V5 environment. Its lateral collision test uses a tolerance of 0.8 car widths, which leaves a 20 px corridor between adjacent lane centres. A policy that alternates between two adjacent lanes settles in that corridor and reaches the cap, so the V5 survival number reflects the environment alongside the agent.
-
-A tolerance of 1.0 places the collision boundary where two equal-width cars touch, and closes that corridor. This is the default in `crashcourse/config.py` and in `configs/v5_smooth.yaml`. Under it the same alternating policy reaches 74 frames, a hand-written safest-lane controller reaches 723 frames, and a fresh PPO run reaches 894 frames at 400,000 transitions with headroom remaining. `configs/ablations/permissive_collision.yaml` preserves the original tolerance so the earlier result stays reproducible, and `tests/test_env.py` covers both.
+Every evaluation names its collision tolerance, and the two settings are tabulated under
+[Results](#results). At 0.8 the 20 px corridor between adjacent lane centres is wide enough for a
+policy alternating between two lanes to settle inside it, so a V5 number describes the environment
+alongside the agent. At 1.0 that corridor closes.
 
 Episode seeding runs through `self.np_random`, so `reset(seed=k)` reproduces an episode exactly. The test suite asserts this.
 
