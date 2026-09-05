@@ -94,6 +94,8 @@ A second pass reduced obstacle speed by half and widened the spawn interval, buy
 
 The measurement carries the design decision that followed. Closing a loop at this rate calls for a policy that runs inside the loop, and a PPO forward pass on a local GPU returns an action in well under a millisecond. That is where V2 begins, and it is the reason the project moved to reinforcement learning at all.
 
+`legacy/car/` holds the connector, the game, and `ai_drive_log.csv`, which is the source of the timings above.
+
 ### V6: revisiting the hosted model
 
 V6 returns to the V1 idea with the same key and model family. Holding one Live
@@ -215,11 +217,14 @@ experiments/        the study, the spawn-clock run, the cadence figures,
 tests/              environment contract and regression tests
 models/             the archived V5 policy
 logs/               the V5 training monitor and evaluation logs
+legacy/car/         V1, the vision-model connector, game, and decision log
+legacy/car2/        V2, the first PPO scripts
+legacy/README.md    what all four earlier iterations contain
 ```
 
-The four earlier iterations stay on local disk. Two of them carry embedded git
-repositories and four model archives totalling 440 MB, and the development
-history above records what each one did.
+V1 and V2 sources are included at 143 KB. V3 and V4 together hold two embedded
+git repositories and four model archives totalling 440 MB, so those stay on disk
+and `legacy/README.md` records what each one contains.
 
 ## Evaluation protocol
 
